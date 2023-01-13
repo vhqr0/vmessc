@@ -11,7 +11,7 @@ from typing import Optional, Dict, List
 
 from .types import Addr, Peer
 from .util import get_super_domain
-from .protocol import socks5_accept, raw_connect, vmess_connect
+from .protocol import socks5_or_http_accept, raw_connect, vmess_connect
 
 
 class Rule(Enum):
@@ -112,17 +112,17 @@ class VmessClient:
 
     async def open_connection(self, reader: StreamReader, writer: StreamWriter):
         try:
-            addr, port = await socks5_accept(reader, writer)
+            addr, port, rest = await socks5_or_http_accept(reader, writer)
             rule = self.match_rule(addr)
             self.logger.info("connect to %s %d %s", addr, port, rule)
             match rule:
                 case Rule.Block:
                     return
                 case Rule.Direct:
-                    await raw_connect(reader, writer, addr, port)
+                    await raw_connect(reader, writer, addr, port, rest)
                 case Rule.Forward:
                     await vmess_connect(
-                        reader, writer, addr, port, random.choice(self.peers)
+                        reader, writer, addr, port, rest, random.choice(self.peers)
                     )
         except Exception as e:
             self.logger.debug("except %s", e)
