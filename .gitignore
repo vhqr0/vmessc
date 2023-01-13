@@ -1,2 +1,6 @@
-/dl.db
+__pycache__
+
+/domain-list-community
+
+/rule.txt
 /config.json
