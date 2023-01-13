@@ -161,10 +161,13 @@ class VmessConfig:
         ]
         self.nodes = nodes
 
-    def fetch(self):
+    def fetch(self, proxy: Optional[str] = None):
         if self.url is None:
             raise ValueError("url is None")
-        res = requests.get(self.url)
+        proxies = {}
+        if proxy is not None:
+            proxies = {"http": proxy, "https": proxy}
+        res = requests.get(self.url, proxies=proxies)
         if res.status_code != 200:
             res.raise_for_status()
         data = base64.decodebytes(res.content).decode()

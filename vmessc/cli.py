@@ -78,10 +78,9 @@ class VmessCli(Cmd):
             print("delete failed: %s", e)
 
     def do_fetch(self, args: str):
-        if args:
-            print(f"invalid args {args}")
+        proxy = args if args else None
         try:
-            self.config.fetch()
+            self.config.fetch(proxy)
             self.config.print()
             self.config.save()
         except Exception as e:
