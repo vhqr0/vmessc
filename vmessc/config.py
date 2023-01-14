@@ -136,10 +136,10 @@ class VmessConfig:
         nodes = [node for index, node in enumerate(self.nodes) if index in node_indexes]
         url = urlparse("socks5://" + (self.local_addr or "localhost:1080"))
         client = VmessClient(
-            (url.hostname or "localhost", url.port or 1080),
-            [node.to_peer() for node in nodes if node.delay > 0.0],
-            self.direction or "direct",
-            self.rule_file,
+            local=(url.hostname or "localhost", url.port or 1080),
+            peers=[node.to_peer() for node in nodes if node.delay > 0.0],
+            direction=self.direction or "direct",
+            rule_file=self.rule_file,
         )
         try:
             client.run()
