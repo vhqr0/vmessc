@@ -176,7 +176,7 @@ def vmess_res_unpack(key: bytes, iv: bytes, rv: int, res: bytes):
     encryptor = cipher.encryptor()
     res = encryptor.update(res) + encryptor.finalize()
     rrv, opts, cmd, clen = struct.unpack("!BBBB", res)
-    if rrv != rv and opts != 0 and cmd != 0 and clen != 0:
+    if rrv != rv or opts != 0 or cmd != 0 or clen != 0:
         raise struct.error("invalid vmess response")
     return
 
