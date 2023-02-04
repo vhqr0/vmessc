@@ -32,15 +32,15 @@ class VmessNode:
         self.delay = delay
 
     def __str__(self):
-        return f"{self.ps} {self.addr} {self.port} {self.delay}"
+        return f'{self.ps} {self.addr} {self.port} {self.delay}'
 
     def to_dict(self) -> dict:
         return {
-            "ps": self.ps,
-            "addr": self.addr,
-            "port": self.port,
-            "uid": self.uid,
-            "delay": self.delay,
+            'ps': self.ps,
+            'addr': self.addr,
+            'port': self.port,
+            'uid': self.uid,
+            'delay': self.delay,
         }
 
     def to_peer(self) -> Peer:
@@ -56,7 +56,7 @@ class VmessNode:
             self.delay = end_time - start_time
         except:
             pass
-        print(f"ping {self.ps} {self.delay}")
+        print(f'ping {self.ps} {self.delay}')
 
 
 class VmessConfig:
@@ -68,9 +68,9 @@ class VmessConfig:
     local_addr: Optional[str]
     nodes: List[VmessNode]
 
-    url_re = re.compile("^([0-9a-zA-Z]+)://(.*)$")
+    url_re = re.compile('^([0-9a-zA-Z]+)://(.*)$')
 
-    def __init__(self, config_file: str = "config.json"):
+    def __init__(self, config_file: str = 'config.json'):
         self.config_file = config_file
         self.url = None
         self.direction = None
@@ -80,65 +80,67 @@ class VmessConfig:
         self.nodes = []
 
     def print(self):
-        print(f"url: {self.url}")
-        print(f"direction: {self.direction}")
-        print(f"rule_file: {self.rule_file}")
-        print(f"log_level: {self.log_level}")
-        print(f"local_addr: {self.local_addr}")
-        print("--- nodes ---")
+        print(f'url: {self.url}')
+        print(f'direction: {self.direction}')
+        print(f'rule_file: {self.rule_file}')
+        print(f'log_level: {self.log_level}')
+        print(f'local_addr: {self.local_addr}')
+        print('--- nodes ---')
         for idx, node in enumerate(self.nodes):
-            print(f"{idx}: {node}")
+            print(f'{idx}: {node}')
 
     def save(self):
-        with open(self.config_file, "w") as cf:
+        with open(self.config_file, 'w') as cf:
             json.dump(self.to_dict(), cf)
 
     def load(self):
         if not os.path.exists(self.config_file):
-            self.direction = "direct"
-            self.log_level = "INFO"
-            self.local_addr = "localhost:1080"
+            self.direction = 'direct'
+            self.log_level = 'INFO'
+            self.local_addr = 'localhost:1080'
             return
         with open(self.config_file) as cf:
             data = json.load(cf)
-            self.url = data.get("url")
-            self.direction = data.get("direction") or "direct"
-            self.rule_file = data.get("rule_file")
-            self.log_level = data.get("log_level") or "INFO"
-            self.local_addr = data.get("local_addr") or "localhost:1080"
+            self.url = data.get('url')
+            self.direction = data.get('direction') or 'direct'
+            self.rule_file = data.get('rule_file')
+            self.log_level = data.get('log_level') or 'INFO'
+            self.local_addr = data.get('local_addr') or 'localhost:1080'
             self.nodes = []
-            nodes = data.get("nodes")
+            nodes = data.get('nodes')
             if isinstance(nodes, list):
                 for node in nodes:
                     self.nodes.append(
                         VmessNode(
-                            ps=node["ps"],
-                            addr=node["addr"],
-                            port=node["port"],
-                            uid=node["uid"],
-                            delay=node["delay"],
-                        )
-                    )
+                            ps=node['ps'],
+                            addr=node['addr'],
+                            port=node['port'],
+                            uid=node['uid'],
+                            delay=node['delay'],
+                        ))
 
     def to_dict(self) -> dict:
         return {
-            "url": self.url,
-            "direction": self.direction,
-            "rule_file": self.rule_file,
-            "log_level": self.log_level,
-            "local_addr": self.local_addr,
-            "nodes": [node.to_dict() for node in self.nodes],
+            'url': self.url,
+            'direction': self.direction,
+            'rule_file': self.rule_file,
+            'log_level': self.log_level,
+            'local_addr': self.local_addr,
+            'nodes': [node.to_dict() for node in self.nodes],
         }
 
     def run(self, node_indexes: List[int]):
         if not node_indexes:
             node_indexes = list(range(len(self.nodes)))
-        nodes = [node for index, node in enumerate(self.nodes) if index in node_indexes]
-        url = urlparse("socks5://" + (self.local_addr or "localhost:1080"))
+        nodes = [
+            node for index, node in enumerate(self.nodes)
+            if index in node_indexes
+        ]
+        url = urlparse('socks5://' + (self.local_addr or 'localhost:1080'))
         client = VmessClient(
-            local=(url.hostname or "localhost", url.port or 1080),
+            local=(url.hostname or 'localhost', url.port or 1080),
             peers=[node.to_peer() for node in nodes if node.delay > 0.0],
-            direction=self.direction or "direct",
+            direction=self.direction or 'direct',
             rule_file=self.rule_file,
         )
         try:
@@ -149,7 +151,10 @@ class VmessConfig:
     def ping(self, node_indexes: List[int]):
         if not node_indexes:
             node_indexes = list(range(len(self.nodes)))
-        nodes = [node for index, node in enumerate(self.nodes) if index in node_indexes]
+        nodes = [
+            node for index, node in enumerate(self.nodes)
+            if index in node_indexes
+        ]
         with ThreadPoolExecutor() as executor:
             executor.map(lambda node: node.ping(), nodes)
 
@@ -157,39 +162,39 @@ class VmessConfig:
         if not node_indexes:
             node_indexes = list(range(len(self.nodes)))
         nodes = [
-            node for index, node in enumerate(self.nodes) if index not in node_indexes
+            node for index, node in enumerate(self.nodes)
+            if index not in node_indexes
         ]
         self.nodes = nodes
 
     def fetch(self, proxy: Optional[str] = None):
         if self.url is None:
-            raise ValueError("url is None")
+            raise ValueError('url is None')
         proxies = {}
         if proxy is not None:
-            proxies = {"http": proxy, "https": proxy}
+            proxies = {'http': proxy, 'https': proxy}
         res = requests.get(self.url, proxies=proxies)
         if res.status_code != 200:
             res.raise_for_status()
         data = base64.decodebytes(res.content).decode()
-        urls = data.split("\r\n")
+        urls = data.split('\r\n')
         self.nodes = []
         for url in urls:
             re_res = self.url_re.match(url)
             if re_res is None:
                 return
             scheme = re_res[1]
-            if scheme != "vmess":
+            if scheme != 'vmess':
                 continue
             data = base64.decodebytes(re_res[2].encode()).decode()
             data = json.loads(data)
-            if data["net"] != "tcp":
+            if data['net'] != 'tcp':
                 continue
             self.nodes.append(
                 VmessNode(
-                    ps=data["ps"],
-                    addr=data["add"],
-                    port=int(data["port"]),
-                    uid=data["id"],
+                    ps=data['ps'],
+                    addr=data['add'],
+                    port=int(data['port']),
+                    uid=data['id'],
                     delay=-1.0,
-                )
-            )
+                ))

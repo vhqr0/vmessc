@@ -5,7 +5,7 @@ from .cli import VmessCli
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config-file", default="config.json")
+    parser.add_argument('-c', '--config-file', default='config.json')
     args = parser.parse_args()
 
     config_file = args.config_file
@@ -17,5 +17,5 @@ def main():
         pass
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

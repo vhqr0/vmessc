@@ -20,27 +20,25 @@ class Rule(Enum):
     Forward = 3
 
     def __str__(self):
-        match self:
-            case self.Block:
-                return "block"
-            case self.Direct:
-                return "direct"
-            case self.Forward:
-                return "forward"
-        return "invalid_rule"
+        if self == self.Block:
+            return 'block'
+        if self == self.Direct:
+            return 'direct'
+        if self == self.Forward:
+            return 'forward'
+        return 'invalid_rule'
 
 
 # TODO: use @classmethod, resolve type hinting problem
 def rule_from_string(s: str) -> Rule:
-    match s.lower():
-        case "block":
-            return Rule.Block
-        case "direct":
-            return Rule.Direct
-        case "forward":
-            return Rule.Forward
-        case _:
-            raise ValueError(f"invalid rule string: {s}")
+    s = s.lower()
+    if s == 'block':
+        return Rule.Block
+    if s == 'direct':
+        return Rule.Direct
+    if s == 'forward':
+        return Rule.Forward
+    raise ValueError(f'invalid rule string: {s}')
 
 
 class VmessClient:
@@ -49,13 +47,13 @@ class VmessClient:
     direction: Rule
     rules: Optional[Dict[str, Rule]]
 
-    logger = logging.getLogger("vmess_client")
+    logger = logging.getLogger('vmess_client')
 
     def __init__(
         self,
         local: Addr,
         peers: List[Peer],
-        direction: str = "direct",
+        direction: str = 'direct',
         rule_file: Optional[str] = None,
     ):
         self.local = local
@@ -68,11 +66,11 @@ class VmessClient:
         with open(rule_file) as rf:
             for line in rf:
                 line = line.strip()
-                if len(line) == 0 or line[0] == "#":  # void or comment line
+                if len(line) == 0 or line[0] == '#':  # void or comment line
                     continue
                 tokens = line.split()
                 if len(tokens) != 2:  # invalid line
-                    raise ValueError(f"invalid rule: {line}")
+                    raise ValueError(f'invalid rule: {line}')
                 rule = rule_from_string(tokens[0])  # may raise ValueError
                 domain = tokens[1]
                 if domain in rules:
@@ -97,32 +95,32 @@ class VmessClient:
         try:
             asyncio.run(self.start_server())
         except Exception as e:
-            self.logger.error("server except %s", e)
+            self.logger.error('server except %s', e)
         except KeyboardInterrupt:
-            self.logger.info("keyboard quit")
+            self.logger.info('keyboard quit')
 
     async def start_server(self):
-        server = await asyncio.start_server(
-            self.open_connection, self.local[0], self.local[1], reuse_address=True
-        )
-        addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
-        self.logger.info("server start at %s", addrs)
+        server = await asyncio.start_server(self.open_connection,
+                                            self.local[0],
+                                            self.local[1],
+                                            reuse_address=True)
+        addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
+        self.logger.info('server start at %s', addrs)
         async with server:
             await server.serve_forever()
 
-    async def open_connection(self, reader: StreamReader, writer: StreamWriter):
+    async def open_connection(self, reader: StreamReader,
+                              writer: StreamWriter):
         try:
             addr, port, rest = await socks5_or_http_accept(reader, writer)
             rule = self.match_rule(addr)
-            self.logger.info("connect to %s %d %s", addr, port, rule)
-            match rule:
-                case Rule.Block:
-                    return
-                case Rule.Direct:
-                    await raw_connect(reader, writer, addr, port, rest)
-                case Rule.Forward:
-                    await vmess_connect(
-                        reader, writer, addr, port, rest, random.choice(self.peers)
-                    )
+            self.logger.info('connect to %s %d %s', addr, port, rule)
+            if rule == Rule.Block:
+                return
+            if rule == Rule.Direct:
+                await raw_connect(reader, writer, addr, port, rest)
+            elif rule == Rule.Forward:
+                await vmess_connect(reader, writer, addr, port, rest,
+                                    random.choice(self.peers))
         except Exception as e:
-            self.logger.debug("except %s", e)
+            self.logger.debug('except %s', e)
