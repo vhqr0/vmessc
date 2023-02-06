@@ -54,7 +54,7 @@ class VmessNode:
             sock.close()
             end_time = time.time()
             self.delay = end_time - start_time
-        except:
+        except Exception:
             pass
         print(f'ping {self.ps} {self.delay}')
 
