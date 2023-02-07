@@ -53,17 +53,26 @@ class VmessClient:
         try:
             acceptor = ProxyAcceptor(reader, writer)
             await acceptor.accept()
+        except Exception as e:
+            self.logger.debug('[except]\twhile accepting: %s', e)
+            return
+        try:
             rule = self.ruleMatcher.match(acceptor.addr)
-            self.logger.info('connect to %s %d %s', acceptor.addr,
-                             acceptor.port, rule)
             if rule == Rule.Block:
+                self.logger.info('[block]\tconnect to %s:%d', acceptor.addr,
+                                 acceptor.port)
                 return
             if rule == Rule.Direct:
+                self.logger.info('[direct]\tconnect to %s:%d', acceptor.addr,
+                                 acceptor.port)
                 connector = RawConnector.from_acceptor(acceptor)
                 await connector.connect()
             elif rule == Rule.Forward:
-                connector = VmessConnector.from_acceptor(
-                    acceptor, random.choice(self.peers))
+                peer = random.choice(self.peers)
+                self.logger.info('[forward]\tconnect to %s:%d via %s',
+                                 acceptor.addr, acceptor.port, peer.ps)
+                connector = VmessConnector.from_acceptor(acceptor, peer)
                 await connector.connect()
         except Exception as e:
-            self.logger.debug('except %s', e)
+            self.logger.debug('[except]\twhile connecting to %s:%d: %s',
+                              acceptor.addr, acceptor.port, e)
