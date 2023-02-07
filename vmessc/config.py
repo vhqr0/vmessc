@@ -1,93 +1,48 @@
 import os
-import time
 import re
 import base64
 import json
 from urllib.parse import urlparse
-import socket
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
 
-from uuid import UUID
-
 from typing import Optional, List
+from urllib.parse import ParseResult as URL
 
-from .types import Peer
+from .node import VmessNode
 from .client import VmessClient
-
-
-class VmessNode:
-    ps: str
-    addr: str
-    port: int
-    uid: str
-    delay: float
-
-    def __init__(self, ps: str, addr: str, port: int, uid: str, delay: float):
-        self.ps = ps
-        self.addr = addr
-        self.port = port
-        self.uid = uid
-        self.delay = delay
-
-    def __str__(self):
-        return f'{self.ps} {self.addr} {self.port} {self.delay}'
-
-    def to_dict(self) -> dict:
-        return {
-            'ps': self.ps,
-            'addr': self.addr,
-            'port': self.port,
-            'uid': self.uid,
-            'delay': self.delay,
-        }
-
-    def to_peer(self) -> Peer:
-        return (self.addr, self.port), UUID(self.uid)
-
-    def ping(self):
-        self.delay = -1.0
-        try:
-            start_time = time.time()
-            sock = socket.create_connection((self.addr, self.port), 3)
-            sock.close()
-            end_time = time.time()
-            self.delay = end_time - start_time
-        except Exception:
-            pass
-        print(f'ping {self.ps} {self.delay}')
 
 
 class VmessConfig:
     config_file: str
-    url: Optional[str]
+    url: Optional[URL]
     direction: Optional[str]
     rule_file: Optional[str]
     log_level: Optional[str]
-    local_addr: Optional[str]
+    local_url: Optional[URL]
     nodes: List[VmessNode]
 
     url_re = re.compile('^([0-9a-zA-Z]+)://(.*)$')
 
     def __init__(self, config_file: str = 'config.json'):
         self.config_file = config_file
-        self.url = None
+        self.fetch_url = None
         self.direction = None
         self.rule_file = None
         self.log_level = None
-        self.local_addr = None
+        self.local_url = None
         self.nodes = []
 
     def print(self):
-        print(f'url: {self.url}')
-        print(f'direction: {self.direction}')
-        print(f'rule_file: {self.rule_file}')
-        print(f'log_level: {self.log_level}')
-        print(f'local_addr: {self.local_addr}')
+        print(f'fetch_url:\t{self.fetch_url.geturl()}')
+        print(f'direction:\t{self.direction}')
+        print(f'rule_file:\t{self.rule_file}')
+        print(f'log_level:\t{self.log_level}')
+        print(f'local_url:\t{self.local_url.geturl()}')
         print('--- nodes ---')
-        for idx, node in enumerate(self.nodes):
-            print(f'{idx}: {node}')
+        for index, node in enumerate(self.nodes):
+            print(f'{index}: {node}')
 
     def save(self):
         with open(self.config_file, 'w') as cf:
@@ -97,83 +52,70 @@ class VmessConfig:
         if not os.path.exists(self.config_file):
             self.direction = 'direct'
             self.log_level = 'INFO'
-            self.local_addr = 'localhost:1080'
+            self.local_url = urlparse('http://localhost:1080')
             return
         with open(self.config_file) as cf:
             data = json.load(cf)
-            self.url = data.get('url')
+            self.fetch_url = urlparse(data.get('fetch_url') or 'http:')
             self.direction = data.get('direction') or 'direct'
             self.rule_file = data.get('rule_file')
             self.log_level = data.get('log_level') or 'INFO'
-            self.local_addr = data.get('local_addr') or 'localhost:1080'
+            self.local_url = urlparse(data.get('local_url') or 'http:')
             self.nodes = []
             nodes = data.get('nodes')
             if isinstance(nodes, list):
-                for node in nodes:
-                    self.nodes.append(
-                        VmessNode(
-                            ps=node['ps'],
-                            addr=node['addr'],
-                            port=node['port'],
-                            uid=node['uid'],
-                            delay=node['delay'],
-                        ))
+                self.nodes = [VmessNode.from_dict(node) for node in nodes]
 
     def to_dict(self) -> dict:
         return {
-            'url': self.url,
+            'fetch_url': self.fetch_url.geturl(),
             'direction': self.direction,
             'rule_file': self.rule_file,
             'log_level': self.log_level,
-            'local_addr': self.local_addr,
+            'local_url': self.local_url.geturl(),
             'nodes': [node.to_dict() for node in self.nodes],
         }
 
-    def run(self, node_indexes: List[int]):
+    def get_nodes(self, node_indexes: List[int], exclusive: bool = False):
         if not node_indexes:
             node_indexes = list(range(len(self.nodes)))
-        nodes = [
-            node for index, node in enumerate(self.nodes)
-            if index in node_indexes
-        ]
-        url = urlparse('socks5://' + (self.local_addr or 'localhost:1080'))
+
+        def pred(index):
+            if exclusive:
+                return index not in node_indexes
+            else:
+                return index in node_indexes
+
+        nodes = [node for index, node in enumerate(self.nodes) if pred(index)]
+        return nodes
+
+    def run(self, node_indexes: List[int]):
+        nodes = self.get_nodes(node_indexes)
         client = VmessClient(
-            local=(url.hostname or 'localhost', url.port or 1080),
-            peers=[node.to_peer() for node in nodes if node.delay > 0.0],
+            local_addr=self.local_url.hostname or 'localhost',
+            local_port=self.local_url.port or 1080,
+            peers=[node for node in nodes if node.delay > 0.0],
             direction=self.direction or 'direct',
             rule_file=self.rule_file,
         )
-        try:
-            client.run()
-        except KeyboardInterrupt:
-            pass
+        client.run()
+
+    def delete(self, node_indexes: List[int]):
+        nodes = self.get_nodes(node_indexes, exclusive=True)
+        self.nodes = nodes
 
     def ping(self, node_indexes: List[int]):
-        if not node_indexes:
-            node_indexes = list(range(len(self.nodes)))
-        nodes = [
-            node for index, node in enumerate(self.nodes)
-            if index in node_indexes
-        ]
+        nodes = self.get_nodes(node_indexes)
         with ThreadPoolExecutor() as executor:
             executor.map(lambda node: node.ping(), nodes)
 
-    def delete(self, node_indexes: List[int]):
-        if not node_indexes:
-            node_indexes = list(range(len(self.nodes)))
-        nodes = [
-            node for index, node in enumerate(self.nodes)
-            if index not in node_indexes
-        ]
-        self.nodes = nodes
-
     def fetch(self, proxy: Optional[str] = None):
-        if self.url is None:
-            raise ValueError('url is None')
+        if self.fetch_url.hostname is None:
+            raise ValueError('invalid fetch url')
         proxies = {}
         if proxy is not None:
             proxies = {'http': proxy, 'https': proxy}
-        res = requests.get(self.url, proxies=proxies)
+        res = requests.get(self.fetch_url.geturl(), proxies=proxies)
         if res.status_code != 200:
             res.raise_for_status()
         data = base64.decodebytes(res.content).decode()
@@ -191,10 +133,10 @@ class VmessConfig:
             if data['net'] != 'tcp':
                 continue
             self.nodes.append(
-                VmessNode(
-                    ps=data['ps'],
-                    addr=data['add'],
-                    port=int(data['port']),
-                    uid=data['id'],
-                    delay=-1.0,
-                ))
+                VmessNode.from_dict({
+                    'ps': data['ps'],
+                    'addr': data['add'],
+                    'port': data['port'],
+                    'uuid': data['id'],
+                    'delay': -1.0,
+                }))

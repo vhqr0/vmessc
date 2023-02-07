@@ -14,7 +14,7 @@ def main():
     try:
         cli.cmdloop()
     except KeyboardInterrupt:
-        pass
+        print('keyboard quit')
 
 
 if __name__ == '__main__':

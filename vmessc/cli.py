@@ -1,8 +1,7 @@
 import logging
 
-from cmd import Cmd
-
 from typing import List
+from cmd import Cmd
 
 from .config import VmessConfig
 
@@ -11,7 +10,7 @@ class VmessCli(Cmd):
     config: VmessConfig
     keys: List[str]
 
-    keys = ['url', 'direction', 'rule_file', 'log_level', 'local_addr']
+    keys = ['fetch_url', 'direction', 'rule_file', 'log_level', 'local_url']
 
     intro = 'Welcome to vmess cli. Type help or ? to list commands.\n'
     prompt = 'vmess cli $ '
@@ -26,20 +25,17 @@ class VmessCli(Cmd):
 
     def do_set(self, args: str):
         try:
-            tokens = args.split()
-            if len(tokens) != 2:
-                raise ValueError(f'invalid args {args}')
-            k, v = tokens
-            if k == 'url':
-                self.config.url = v
+            k, v = args.split(maxsplit=1)
+            if k == 'fetch_url':
+                self.config.fetch_url = v
             elif k == 'direction':
                 self.config.direction = v
             elif k == 'rule_file':
                 self.config.rule_file = v
             elif k == 'log_level':
                 self.config.log_level = v
-            elif k == 'local_addr':
-                self.config.local_addr = v
+            elif k == 'local_url':
+                self.config.local_url = v
             else:
                 raise ValueError(f'invalid args {args}')
             self.config.save()
@@ -51,8 +47,6 @@ class VmessCli(Cmd):
         return [key for key in self.keys if key.startswith(text)]
 
     def do_list(self, args: str):
-        if args:
-            print(f'invalid args: {args}')
         self.config.print()
 
     def do_run(self, args: str):
@@ -62,14 +56,6 @@ class VmessCli(Cmd):
         except Exception as e:
             print('run failed: %s', e)
 
-    def do_ping(self, args: str):
-        try:
-            self.config.ping([int(arg) for arg in args.split()])
-            self.config.print()
-            self.config.save()
-        except Exception as e:
-            print('ping failed: %s', e)
-
     def do_delete(self, args: str):
         try:
             self.config.delete([int(arg) for arg in args.split()])
@@ -77,6 +63,14 @@ class VmessCli(Cmd):
             self.config.save()
         except Exception as e:
             print('delete failed: %s', e)
+
+    def do_ping(self, args: str):
+        try:
+            self.config.ping([int(arg) for arg in args.split()])
+            self.config.print()
+            self.config.save()
+        except Exception as e:
+            print('ping failed: %s', e)
 
     def do_fetch(self, args: str):
         proxy = args if args else None

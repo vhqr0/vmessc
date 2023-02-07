@@ -3,6 +3,7 @@ import struct
 import socket
 import asyncio
 
+from typing import Optional
 from asyncio import StreamReader, StreamWriter
 
 
@@ -144,27 +145,32 @@ async def io_copy(reader: StreamReader, writer: StreamWriter):
 class RawConnector:
     reader: StreamReader  # client reader
     writer: StreamWriter  # client writer
-    peer_reader: StreamReader  # peer reader
-    peer_writer: StreamWriter  # peer writer
+    peer_reader: Optional[StreamReader]  # peer reader
+    peer_writer: Optional[StreamWriter]  # peer writer
     addr: str  # request addr
     port: int  # request port
     rest: bytes  # payload shipped with request
 
     tasks = set()
 
-    def __init__(self, acceptor: ProxyAcceptor):
-        '''
-        Args:
-        - acceptor: ProxyAcceptor
-        # Set reader, writer, addr, port and rest from acceptor.
-        '''
-        self.reader = acceptor.reader
-        self.writer = acceptor.writer
+    def __init__(self, reader: StreamReader, writer: StreamWriter, addr: str,
+                 port: int, rest: bytes):
+        self.reader = reader
+        self.writer = writer
         self.peer_reader = None
         self.peer_writer = None
-        self.addr = acceptor.addr
-        self.port = acceptor.port
-        self.rest = acceptor.rest
+        self.addr = addr
+        self.port = port
+        self.rest = rest
+
+    # TODO: return type hint
+    @classmethod
+    def from_acceptor(cls, acceptor: ProxyAcceptor):
+        return cls(reader=acceptor.reader,
+                   writer=acceptor.writer,
+                   addr=acceptor.addr,
+                   port=acceptor.port,
+                   rest=acceptor.rest)
 
     async def connect(self):
         '''

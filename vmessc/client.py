@@ -1,109 +1,47 @@
 import random
-import functools
 import logging
-
 import asyncio
 
-from enum import Enum
+from typing import Optional, List
 from asyncio import StreamReader, StreamWriter
 
-from typing import Optional, Dict, List
-
-from .types import Addr, Peer
-from .util import get_super_domain
-from .protocol import vmess_connect
+from .node import VmessNode
 from .proxy import ProxyAcceptor, RawConnector
-
-
-class Rule(Enum):
-    Block = 1
-    Direct = 2
-    Forward = 3
-
-    def __str__(self):
-        if self == self.Block:
-            return 'block'
-        if self == self.Direct:
-            return 'direct'
-        if self == self.Forward:
-            return 'forward'
-        return 'invalid_rule'
-
-
-# TODO: use @classmethod, resolve type hinting problem
-def rule_from_string(s: str) -> Rule:
-    s = s.lower()
-    if s == 'block':
-        return Rule.Block
-    if s == 'direct':
-        return Rule.Direct
-    if s == 'forward':
-        return Rule.Forward
-    raise ValueError(f'invalid rule string: {s}')
+from .vmess import VmessConnector
+from .rule import Rule, RuleMatcher
 
 
 class VmessClient:
-    local: Addr
-    peers: List[Peer]
-    direction: Rule
-    rules: Optional[Dict[str, Rule]]
+    local_addr: str
+    local_port: int
+    peers: List[VmessNode]
+    ruleMatcher: RuleMatcher
 
     logger = logging.getLogger('vmess_client')
 
     def __init__(
         self,
-        local: Addr,
-        peers: List[Peer],
+        local_addr: str,
+        local_port: int,
+        peers: List[VmessNode],
         direction: str = 'direct',
         rule_file: Optional[str] = None,
     ):
-        self.local = local
+        self.local_addr = local_addr
+        self.local_port = local_port
         self.peers = peers
-        self.direction = rule_from_string(direction)
-        self.rules = self.load_rule_file(rule_file) if rule_file else None
-
-    def load_rule_file(self, rule_file: str):
-        rules = dict()
-        with open(rule_file) as rf:
-            for line in rf:
-                line = line.strip()
-                if len(line) == 0 or line[0] == '#':  # void or comment line
-                    continue
-                tokens = line.split()
-                if len(tokens) != 2:  # invalid line
-                    raise ValueError(f'invalid rule: {line}')
-                rule = rule_from_string(tokens[0])  # may raise ValueError
-                domain = tokens[1]
-                if domain in rules:
-                    # previous rule has higher priority
-                    continue
-                rules[domain] = rule
-        return rules
-
-    @functools.cache
-    def match_rule(self, domain: str) -> Rule:
-        if self.rules is None:  # no rules
-            return self.direction
-        rule = self.rules.get(domain)
-        if rule is not None:  # match domain
-            return rule
-        super_domain = get_super_domain(domain)
-        if super_domain is not None:  # recursive match super domain
-            return self.match_rule(super_domain)
-        return self.direction  # use default rule
+        self.ruleMatcher = RuleMatcher(direction, rule_file)
 
     def run(self):
         try:
             asyncio.run(self.start_server())
         except Exception as e:
             self.logger.error('server except %s', e)
-        except KeyboardInterrupt:
-            self.logger.info('keyboard quit')
 
     async def start_server(self):
         server = await asyncio.start_server(self.open_connection,
-                                            self.local[0],
-                                            self.local[1],
+                                            self.local_addr,
+                                            self.local_port,
                                             reuse_address=True)
         addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
         self.logger.info('server start at %s', addrs)
@@ -115,18 +53,17 @@ class VmessClient:
         try:
             acceptor = ProxyAcceptor(reader, writer)
             await acceptor.accept()
-            addr, port, rest = acceptor.addr, acceptor.port, acceptor.rest
-            # addr, port, rest = await socks5_or_http_accept(reader, writer)
-            rule = self.match_rule(addr)
-            self.logger.info('connect to %s %d %s', addr, port, rule)
+            rule = self.ruleMatcher.match(acceptor.addr)
+            self.logger.info('connect to %s %d %s', acceptor.addr,
+                             acceptor.port, rule)
             if rule == Rule.Block:
                 return
             if rule == Rule.Direct:
-                connector = RawConnector(acceptor)
+                connector = RawConnector.from_acceptor(acceptor)
                 await connector.connect()
-                # await raw_connect(reader, writer, addr, port, rest)
             elif rule == Rule.Forward:
-                await vmess_connect(reader, writer, addr, port, rest,
-                                    random.choice(self.peers))
+                connector = VmessConnector.from_acceptor(
+                    acceptor, random.choice(self.peers))
+                await connector.connect()
         except Exception as e:
             self.logger.debug('except %s', e)
