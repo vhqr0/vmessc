@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-'''
+"""
 Merge https://github.com/v2fly/domain-list-community to one single file.
 The four type: domain, full, keyword and regexp, only support domain and full.
 Multi-tags syntax is not supported. (So far it doesn't seem to be used.)
-'''
+"""
 
 import re
 import argparse

@@ -1,3 +1,24 @@
+"""Client side vmess proxy protocol implementation.
+
+Provide a connector similar to proxy.RawConnector, but make raw to
+vmess connection.
+
+Usage example:
+
+  async def proxy_handler(reader, writer):
+    # create acceptor and accept proxy request
+    acceptor = ProxyAcceptor(reader, writer)
+    await acceptor.accept()
+    # create connector and make connection
+    connector = VmessConnector.from_acceptor(acceptor, peer)
+    await connector.connect()
+
+  # create server and serve
+  server = await asyncio.start_server(proxy_handler, '0.0.0.0', '1080')
+  async with server:
+    await server.serve_forever()
+"""
+
 import time
 import random
 import struct
@@ -20,6 +41,14 @@ from .proxy import ProxyAcceptor
 
 
 def fnv32a(buf: bytes) -> bytes:
+    """Python version of checksum algorithm fnv32.
+
+    Args:
+        buf: Buffer to checksum.
+
+    Returns:
+        32-bit checksum results.
+    """
     hval = 0x811c9dc5
     fnv_32_prime = 0x01000193
     for ch in buf:
@@ -32,8 +61,8 @@ class VmessConnector:
     writer: StreamWriter  # client writer
     peer_reader: Optional[StreamReader]  # peer reader
     peer_writer: Optional[StreamWriter]  # peer writer
-    addr: str  # request addr
-    port: int  # request port
+    addr: str  # addr of requested host
+    port: int  # port of requested host
     rest: bytes  # payload shipped with request
     peer: VmessNode  # peer vmess node
     key: bytes  # vmess crypt key
@@ -44,6 +73,15 @@ class VmessConnector:
 
     def __init__(self, reader: StreamReader, writer: StreamWriter, addr: str,
                  port: int, rest: bytes, peer: VmessNode):
+        """
+        Args:
+            reader: Accept from start_server as callback args.
+            writer: Accept from start_server as callback args.
+            addr: Addr of requested host accept by acceptor.
+            port: Port of requested host accept by acceptor.
+            rest: Payload shipped with request.
+            peer: Peer vmess node.
+        """
         self.reader = reader
         self.writer = writer
         self.peer_reader = None
@@ -58,6 +96,15 @@ class VmessConnector:
 
     @classmethod
     def from_acceptor(cls, acceptor: ProxyAcceptor, peer: VmessNode) -> Self:
+        """Create connector from acceptor.
+
+        Args:
+            acceptor: An acceptor have awaited acceptor.accept.
+            peer: Peer vmess node.
+
+        Returns:
+            Connector initiated from acceptor.
+        """
         return cls(reader=acceptor.reader,
                    writer=acceptor.writer,
                    addr=acceptor.addr,
@@ -66,14 +113,17 @@ class VmessConnector:
                    peer=peer)
 
     async def connect(self):
+        """Make connection."""
         self.peer_reader, self.peer_writer = await asyncio.open_connection(
             self.peer.addr, self.peer.port)
+
         task1 = asyncio.create_task(self.io_copy_from_client())
         task2 = asyncio.create_task(self.io_copy_from_peer())
         self.tasks.add(task1)
         self.tasks.add(task2)
         task1.add_done_callback(self.tasks.discard)
         task2.add_done_callback(self.tasks.discard)
+
         try:
             await asyncio.gather(task1, task2)
         except Exception:
@@ -84,6 +134,11 @@ class VmessConnector:
             raise
 
     def pack_req(self) -> bytes:
+        """Pack vmess request.
+
+        Returns:
+            Full encrypted vmess request with auth header.
+        """
         ts = int(time.time())
         ts_bytes = ts.to_bytes(8, 'big')
 
@@ -138,7 +193,9 @@ class VmessConnector:
         return auth + req
 
     async def io_copy_from_client(self):
+        """Copy from client to peer."""
         aesgcm, iv, count = AESGCM(self.key), self.iv[2:12], 0
+
         self.peer_writer.write(self.pack_req())
         if self.rest:
             buf = aesgcm.encrypt(struct.pack('!H', count) + iv, self.rest, b'')
@@ -146,22 +203,24 @@ class VmessConnector:
             self.peer_writer.write(buf)
             count += 1
         await self.peer_writer.drain()
+
         while True:
             buf = await self.reader.read(4096)
             if len(buf) == 0:
+                # close notify
                 buf = aesgcm.encrypt(struct.pack('!H', count) + iv, b'', b'')
                 self.peer_writer.write(buf)
                 if self.peer_writer.can_write_eof():
                     self.peer_writer.write_eof()
                 break
-            else:
-                buf = aesgcm.encrypt(struct.pack('!H', count) + iv, buf, b'')
-                buf = struct.pack('!H', len(buf)) + buf
-                self.peer_writer.write(buf)
-                await self.peer_writer.drain()
-                count += 1
+            buf = aesgcm.encrypt(struct.pack('!H', count) + iv, buf, b'')
+            buf = struct.pack('!H', len(buf)) + buf
+            self.peer_writer.write(buf)
+            await self.peer_writer.drain()
+            count += 1
 
     async def io_copy_from_peer(self):
+        """Copy from peer to client."""
         key, iv = md5(self.key).digest(), md5(self.iv).digest()
         buf = await self.peer_reader.readexactly(4)
         cipher = Cipher(AES(key), CFB(iv))
@@ -172,20 +231,17 @@ class VmessConnector:
             raise struct.error('invalid vmess response')
 
         aesgcm, iv, count = AESGCM(key), iv[2:12], 0
-        eof = False
+
         while True:
             try:
                 buf = await self.peer_reader.readexactly(2)
                 blen, = struct.unpack('!H', buf)
                 buf = await self.peer_reader.readexactly(blen)
             except asyncio.IncompleteReadError:
-                eof = True
-            if eof:
                 if self.writer.can_write_eof():
                     self.writer.write_eof()
                 break
-            else:
-                buf = aesgcm.decrypt(struct.pack('!H', count) + iv, buf, b'')
-                self.writer.write(buf)
-                await self.writer.drain()
-                count += 1
+            buf = aesgcm.decrypt(struct.pack('!H', count) + iv, buf, b'')
+            self.writer.write(buf)
+            await self.writer.drain()
+            count += 1
