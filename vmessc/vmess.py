@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.ciphers.modes import CFB
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from typing import Optional
+from typing_extensions import Self
 from asyncio import StreamReader, StreamWriter
 
 from .node import VmessNode
@@ -55,9 +56,8 @@ class VmessConnector:
         self.iv = random.randbytes(16)
         self.rv = random.getrandbits(8)
 
-    # TODO: return type hint
     @classmethod
-    def from_acceptor(cls, acceptor: ProxyAcceptor, peer: VmessNode):
+    def from_acceptor(cls, acceptor: ProxyAcceptor, peer: VmessNode) -> Self:
         return cls(reader=acceptor.reader,
                    writer=acceptor.writer,
                    addr=acceptor.addr,

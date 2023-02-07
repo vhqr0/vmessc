@@ -1,6 +1,7 @@
 import time
 import socket
 
+from typing_extensions import Self
 from uuid import UUID
 
 
@@ -22,9 +23,8 @@ class VmessNode:
     def __str__(self) -> str:
         return f'{self.ps}\t{self.addr}:{self.port}\t{self.delay}'
 
-    # TODO: return type hint
     @classmethod
-    def from_dict(cls, obj: dict):
+    def from_dict(cls, obj: dict) -> Self:
         return cls(ps=str(obj['ps']),
                    addr=str(obj['addr']),
                    port=int(obj['port']),

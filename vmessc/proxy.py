@@ -4,6 +4,7 @@ import socket
 import asyncio
 
 from typing import Optional
+from typing_extensions import Self
 from asyncio import StreamReader, StreamWriter
 
 
@@ -163,9 +164,8 @@ class RawConnector:
         self.port = port
         self.rest = rest
 
-    # TODO: return type hint
     @classmethod
-    def from_acceptor(cls, acceptor: ProxyAcceptor):
+    def from_acceptor(cls, acceptor: ProxyAcceptor) -> Self:
         return cls(reader=acceptor.reader,
                    writer=acceptor.writer,
                    addr=acceptor.addr,

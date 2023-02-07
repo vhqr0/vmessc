@@ -1,6 +1,7 @@
 import functools
 
 from typing import Optional, Dict
+from typing_extensions import Self
 from enum import Enum
 
 
@@ -18,9 +19,8 @@ class Rule(Enum):
             return 'forward'
         return '<invalid rule>'
 
-    # TODO: return type hint
     @classmethod
-    def from_string(cls, s: str):
+    def from_string(cls, s: str) -> Self:
         s = s.lower()
         if s == 'block':
             return cls.Block
