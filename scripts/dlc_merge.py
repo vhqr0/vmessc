@@ -23,8 +23,8 @@ tag2rule = {
 line_re = re.compile(r'^((\w+):)?([^\s\t#]+)( @([^\s\t#]+))?')
 
 
-def load_rule(rules_file, default_tag):
-    for line in open(f'{datapath}/{rules_file}'):
+def load_rule(rule_file: str, default_tag: str):
+    for line in open(f'{datapath}/{rule_file}'):
         res = line_re.match(line.strip())
         if res is None:
             continue

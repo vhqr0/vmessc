@@ -76,11 +76,13 @@ class VmessConfig:
             'nodes': [node.to_dict() for node in self.nodes],
         }
 
-    def get_nodes(self, node_indexes: List[int], exclusive: bool = False):
+    def get_nodes(self,
+                  node_indexes: List[int],
+                  exclusive: bool = False) -> List[VmessNode]:
         if not node_indexes:
             node_indexes = list(range(len(self.nodes)))
 
-        def pred(index):
+        def pred(index: int) -> bool:
             if exclusive:
                 return index not in node_indexes
             else:
