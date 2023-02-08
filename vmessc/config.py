@@ -1,3 +1,41 @@
+"""Subscribe and client config manager.
+
+Easy to fetch and manage subscribed-ed vmess nodes, and start client
+from a config file.
+
+Config example:
+
+  {
+    "fetch_url": "https://example.net",
+    "direction": "direct",
+    "rule_file": "rule.txt",
+    "log_level": "INFO",
+    "local_url": "http://localhost:1080",
+    "nodes": [
+      {
+        "ps": "peer1",
+        "addr": "peer1.net",
+        "port": "80",
+        "uuid": "...",
+        "delay": 0.4
+      },
+      {
+        "ps": "peer2",
+        "addr": "peer2.net",
+        "port": "443",
+        "uuid": "...",
+        "delay": 0.5
+      },
+    ]
+  }
+
+Usage example:
+
+  config = VmessConfig(config_file='config.json')
+  config.load()
+  config.run()
+"""
+
 import os
 import re
 import base64
@@ -15,8 +53,19 @@ from .client import VmessClient
 
 
 class VmessConfig:
+    """Vmess client config manager.
+
+    Attributes:
+        config_file: Persistent configure file path.
+        fetch_url: URL to fetch subscribed-ed vmess nodes.
+        direction: Default rule passed to ruleMatcher.
+        rule_file: Rule set file path passed to ruleMatcher.
+        log_level: Logging level, 'DEBUG', 'INFO', 'WARNING', etc.
+        local_url: Local addr:port to listen.
+        nodes: A set of peer vmess nodes.
+    """
     config_file: str
-    url: Optional[URL]
+    fetch_url: Optional[URL]
     direction: Optional[str]
     rule_file: Optional[str]
     log_level: Optional[str]
@@ -26,6 +75,10 @@ class VmessConfig:
     url_re = re.compile('^([0-9a-zA-Z]+)://(.*)$')
 
     def __init__(self, config_file: str = 'config.json'):
+        """
+        Args:
+            config_file: Persistent configure file path.
+        """
         self.config_file = config_file
         self.fetch_url = None
         self.direction = None
@@ -35,6 +88,7 @@ class VmessConfig:
         self.nodes = []
 
     def print(self):
+        """Print config."""
         print(f'fetch_url:\t{self.fetch_url.geturl()}')
         print(f'direction:\t{self.direction}')
         print(f'rule_file:\t{self.rule_file}')
@@ -45,10 +99,12 @@ class VmessConfig:
             print(f'{index}: {node}')
 
     def save(self):
+        """Save config."""
         with open(self.config_file, 'w') as cf:
             json.dump(self.to_dict(), cf)
 
     def load(self):
+        """Load config."""
         if not os.path.exists(self.config_file):
             self.direction = 'direct'
             self.log_level = 'INFO'
@@ -67,6 +123,11 @@ class VmessConfig:
                 self.nodes = [VmessNode.from_dict(node) for node in nodes]
 
     def to_dict(self) -> dict:
+        """Convert VmessConfig to dict.
+
+        Returns:
+            Dict initialized from VmessConfig.
+        """
         return {
             'fetch_url': self.fetch_url.geturl(),
             'direction': self.direction,
@@ -79,6 +140,12 @@ class VmessConfig:
     def get_nodes(self,
                   node_indexes: List[int],
                   exclusive: bool = False) -> List[VmessNode]:
+        """Get target nodes.
+
+        Args:
+            node_indexes: target node indexes, empty for all.
+            exclusive: toggle target and others.
+        """
         if not node_indexes:
             node_indexes = list(range(len(self.nodes)))
 
@@ -92,6 +159,11 @@ class VmessConfig:
         return nodes
 
     def run(self, node_indexes: List[int]):
+        """Run client.
+
+        Args:
+            node_indexes: See get_nodes, nodes to use as client peers.
+        """
         nodes = self.get_nodes(node_indexes)
         client = VmessClient(
             local_addr=self.local_url.hostname or 'localhost',
@@ -103,15 +175,30 @@ class VmessConfig:
         client.run()
 
     def delete(self, node_indexes: List[int]):
+        """Delete nodes.
+
+        Args:
+            node_indexes: See get_nodes, nodes to delete.
+        """
         nodes = self.get_nodes(node_indexes, exclusive=True)
         self.nodes = nodes
 
     def ping(self, node_indexes: List[int]):
+        """Ping nodes.
+
+        Args:
+            node_indexes: See get_nodes, nodes to ping.
+        """
         nodes = self.get_nodes(node_indexes)
         with ThreadPoolExecutor() as executor:
             executor.map(lambda node: node.ping(), nodes)
 
     def fetch(self, proxy: Optional[str] = None):
+        """Fetch subscribed-ed nodes.
+
+        Args:
+            proxy: Proxy to use while fetching.
+        """
         if self.fetch_url.hostname is None:
             raise ValueError('invalid fetch url')
         proxies = {}

@@ -1,3 +1,18 @@
+"""A rule based, load balanced vmess client.
+
+The client is similar to other popular rule based proxy tools, but can
+configure more than one peers, and randomly select one when using.
+
+Usage example:
+
+  client = VmessClient(local_addr='0.0.0.0',
+                       local_port=1080,
+                       peers=[peer1, peer2],
+                       direction='direct',
+                       rule_file='rule.txt')
+  client.run()
+"""
+
 import random
 import logging
 import asyncio
@@ -12,6 +27,16 @@ from .rule import Rule, RuleMatcher
 
 
 class VmessClient:
+    """Vmess proxy protocol client.
+
+    Run client by calling client.run().
+
+    Args:
+        local_addr: Addr to listen.
+        local_port: Port to listen.
+        peers: A set of peer vmess nodes.
+        ruleMatcher: Rule matcher.
+    """
     local_addr: str
     local_port: int
     peers: List[VmessNode]
@@ -27,18 +52,28 @@ class VmessClient:
         direction: str = 'direct',
         rule_file: Optional[str] = None,
     ):
+        """
+        Args:
+            local_addr: Addr to listen.
+            local_port: Port to listen.
+            peers: A set of peer vmess nodes.
+            direction: Default rule passed to ruleMatcher.
+            rule_file: Rule set file path passed to ruleMatcher.
+        """
         self.local_addr = local_addr
         self.local_port = local_port
         self.peers = peers
         self.ruleMatcher = RuleMatcher(direction, rule_file)
 
     def run(self):
+        """Run client."""
         try:
             asyncio.run(self.start_server())
         except Exception as e:
             self.logger.error('server except %s', e)
 
     async def start_server(self):
+        """Start server."""
         server = await asyncio.start_server(self.open_connection,
                                             self.local_addr,
                                             self.local_port,
@@ -50,12 +85,19 @@ class VmessClient:
 
     async def open_connection(self, reader: StreamReader,
                               writer: StreamWriter):
+        """Server callback.
+
+        Args:
+            reader: Client reader, accept from start_server as callback args.
+            writer: Client writer, accept from start_server as callback args.
+        """
         try:
             acceptor = ProxyAcceptor(reader, writer)
             await acceptor.accept()
         except Exception as e:
             self.logger.debug('[except]\twhile accepting: %s', e)
             return
+
         try:
             rule = self.ruleMatcher.match(acceptor.addr)
             if rule == Rule.Block:

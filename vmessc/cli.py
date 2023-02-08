@@ -1,3 +1,13 @@
+"""Vmess clinet command line interface.
+
+Call VmessConfig methods in command line with completion.
+
+Usage example:
+
+  cli = VmessCli(config_file='config.json')
+  cli.cmdloop()
+"""
+
 import logging
 
 from typing import List
@@ -7,6 +17,12 @@ from .config import VmessConfig
 
 
 class VmessCli(Cmd):
+    """Vmess client command line interface.
+
+    Attributes:
+        config: Client config manager.
+        keys: Set command completion keywords.
+    """
     config: VmessConfig
     keys: List[str]
 
@@ -16,14 +32,20 @@ class VmessCli(Cmd):
     prompt = 'vmess cli $ '
 
     def __init__(self, config_file: str = 'config.json'):
+        """
+        Args:
+            config_file: Config file path passed to config.
+        """
         super().__init__()
         self.config = VmessConfig(config_file=config_file)
         self.config.load()
 
     def do_EOF(self, args: str):
+        """Handle C-d as C-c."""
         raise KeyboardInterrupt
 
     def do_set(self, args: str):
+        """Do set."""
         try:
             k, v = args.split(maxsplit=1)
             if k == 'fetch_url':
@@ -44,12 +66,15 @@ class VmessCli(Cmd):
 
     def complete_set(self, text: str, line: str, begidx: int,
                      endidx: int) -> List[str]:
+        """Set command completion."""
         return [key for key in self.keys if key.startswith(text)]
 
     def do_list(self, args: str):
+        """Do list."""
         self.config.print()
 
     def do_run(self, args: str):
+        """Do run."""
         try:
             logging.basicConfig(level=self.config.log_level)
             self.config.run([int(arg) for arg in args.split()])
@@ -57,6 +82,7 @@ class VmessCli(Cmd):
             print('run failed: %s', e)
 
     def do_delete(self, args: str):
+        """Do delete."""
         try:
             self.config.delete([int(arg) for arg in args.split()])
             self.config.print()
@@ -65,6 +91,7 @@ class VmessCli(Cmd):
             print('delete failed: %s', e)
 
     def do_ping(self, args: str):
+        """Do ping."""
         try:
             self.config.ping([int(arg) for arg in args.split()])
             self.config.print()
@@ -73,6 +100,7 @@ class VmessCli(Cmd):
             print('ping failed: %s', e)
 
     def do_fetch(self, args: str):
+        """Do fetch."""
         proxy = args if args else None
         try:
             self.config.fetch(proxy)

@@ -14,7 +14,7 @@ Usage example:
     await connector.connect()
 
   # create server and serve
-  server = await asyncio.start_server(proxy_handler, '0.0.0.0', '1080')
+  server = await asyncio.start_server(proxy_handler, '0.0.0.0', 1080)
   async with server:
     await server.serve_forever()
 """
