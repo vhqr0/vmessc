@@ -1,3 +1,8 @@
+"""Vmess node representation.
+
+Provide a serializable class VmessNode to represent a vmess node.
+"""
+
 import time
 import socket
 
@@ -6,6 +11,26 @@ from uuid import UUID
 
 
 class VmessNode:
+    """Represent a vmess node.
+
+    Basic information of a vmess node contains addr, port and uuid.
+    We additionally add a readable name: ps, which can extract from
+    subscribe, and delay time to connect to this node, while -1 means
+    timeout.
+
+    Convert from:
+        dict VmessNode.from_dict
+
+    Convert to:
+        dict VmessNode.to_dict
+
+    Attributes:
+        ps: Readable name.
+        addr: Addr of node.
+        port: Port of vmess service.
+        uuid: Identity to connect to vmess service.
+        delay: Time to connect to node, while -1 means timeout.
+    """
     ps: str
     addr: str
     port: int
@@ -14,6 +39,14 @@ class VmessNode:
 
     def __init__(self, ps: str, addr: str, port: int, uuid: UUID,
                  delay: float):
+        """
+        Args:
+            ps: Readable name.
+            addr: Addr of node.
+            port: Port of vmess service.
+            uuid: Identity to connect to vmess service.
+            delay: Time to connect to node, while -1 means timeout.
+        """
         self.ps = ps
         self.addr = addr
         self.port = port
@@ -25,6 +58,14 @@ class VmessNode:
 
     @classmethod
     def from_dict(cls, obj: dict) -> Self:
+        """Convert dict to VmessNode.
+
+        Args:
+            obj: Dict contains ps, addr, port, uuid and delay.
+
+        Return:
+            VmessNode initialized from dict.
+        """
         return cls(ps=str(obj['ps']),
                    addr=str(obj['addr']),
                    port=int(obj['port']),
@@ -32,6 +73,11 @@ class VmessNode:
                    delay=float(obj['delay']))
 
     def to_dict(self) -> dict:
+        """Convert VmessNode to dict.
+
+        Returns:
+            Dict initialized from VmessNode.
+        """
         return {
             'ps': self.ps,
             'addr': self.addr,
@@ -41,6 +87,7 @@ class VmessNode:
         }
 
     def ping(self):
+        """Measure delay time."""
         self.delay = -1.0
         try:
             start_time = time.time()

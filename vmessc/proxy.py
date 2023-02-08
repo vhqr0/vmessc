@@ -30,12 +30,26 @@ from asyncio import StreamReader, StreamWriter
 
 
 class ProxyAcceptor:
-    reader: StreamReader  # client reader
-    writer: StreamWriter  # client writer
-    buf: bytes  # buffer store request
-    addr: str  # addr of requested host
-    port: int  # port of requested host
-    rest: bytes  # payload shipped with request
+    """Accept a proxy request, auto detect http/socks5.
+
+    Accept a proxy request by awaiting acceptor.accept(), and request
+    information will be stored in acceptor.addr, acceptor.port and
+    acceptor.rest.
+
+    Attributes:
+        reader: Client reader.
+        writer: Clinet writer.
+        buf: Buffer to store request.
+        addr: Addr of requested host.
+        port: Port of requested host.
+        rest: Payload shipped with request.
+    """
+    reader: StreamReader
+    writer: StreamWriter
+    buf: bytes
+    addr: str
+    port: int
+    rest: bytes
 
     http_request_re = re.compile(r'^(\w+) [^ ]+ (HTTP/[^ \r\n]+)\r\n')
     http_host_re = re.compile(
@@ -172,13 +186,28 @@ async def io_copy(reader: StreamReader, writer: StreamWriter):
 
 
 class RawConnector:
-    reader: StreamReader  # client reader
-    writer: StreamWriter  # client writer
-    peer_reader: Optional[StreamReader]  # peer reader
-    peer_writer: Optional[StreamWriter]  # peer writer
-    addr: str  # addr of requested host
-    port: int  # port of requested host
-    rest: bytes  # payload shipped with request
+    """Make raw connection between client and requested host.
+
+    Connect to requested host self.addr:self.port, send self.rest on
+    connecting if possible, and then relay traffic between client and
+    requested host, by awaiting connector.connect().
+
+    Attributes:
+        reader: Client reader.
+        writer: Clinet writer.
+        peer_reader: Peer reader.
+        peer_writer: Peer writer.
+        addr: Addr of requested host.
+        port: Port of requested host.
+        rest: Payload shipped with request.
+    """
+    reader: StreamReader
+    writer: StreamWriter
+    peer_reader: Optional[StreamReader]
+    peer_writer: Optional[StreamWriter]
+    addr: str
+    port: int
+    rest: bytes
 
     tasks = set()
 
@@ -208,7 +237,7 @@ class RawConnector:
             acceptor: An acceptor have awaited acceptor.accept.
 
         Returns:
-            Connector initiated from acceptor.
+            Connector initialized from acceptor.
         """
         return cls(reader=acceptor.reader,
                    writer=acceptor.writer,

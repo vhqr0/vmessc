@@ -57,17 +57,36 @@ def fnv32a(buf: bytes) -> bytes:
 
 
 class VmessConnector:
-    reader: StreamReader  # client reader
-    writer: StreamWriter  # client writer
-    peer_reader: Optional[StreamReader]  # peer reader
-    peer_writer: Optional[StreamWriter]  # peer writer
-    addr: str  # addr of requested host
-    port: int  # port of requested host
-    rest: bytes  # payload shipped with request
-    peer: VmessNode  # peer vmess node
-    key: bytes  # vmess crypt key
-    iv: bytes  # vmess crypt iv
-    rv: int  # vmess auth rv
+    """Make connection between and requested host via a vmess node.
+
+    Connect to peer vmess node, do vmess handshake and request, send
+    self.rest on connecting if possible, and then relay traffic
+    between client and peer, by awaiting connector.connect().
+
+    Attributes:
+        reader: Client reader.
+        writer: Clinet writer.
+        peer_reader: Peer reader.
+        peer_writer: Peer writer.
+        addr: Addr of requested host.
+        port: Port of requested host.
+        rest: Payload shipped with request.
+        peer: Peer vmess node.
+        key: Vmess crypt key.
+        iv: Vmess crypt iv.
+        rv: Vmess auth rv.
+    """
+    reader: StreamReader
+    writer: StreamWriter
+    peer_reader: Optional[StreamReader]
+    peer_writer: Optional[StreamWriter]
+    addr: str
+    port: int
+    rest: bytes
+    peer: VmessNode
+    key: bytes
+    iv: bytes
+    rv: int
 
     tasks = set()
 
@@ -103,7 +122,7 @@ class VmessConnector:
             peer: Peer vmess node.
 
         Returns:
-            Connector initiated from acceptor.
+            Connector initialized from acceptor.
         """
         return cls(reader=acceptor.reader,
                    writer=acceptor.writer,

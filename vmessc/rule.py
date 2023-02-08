@@ -33,6 +33,15 @@ from enum import Enum
 
 
 class Rule(Enum):
+    """Represent a proxy rule: one of Block, Direct or Forward.
+
+    Convert from:
+      int Rule.__init__ (1, 2, 3)
+      str Rule.from_string ('block', 'direct', 'forward')
+
+    Convert to:
+      str Rule.__str__
+    """
     Block = 1
     Direct = 2
     Forward = 3
@@ -70,8 +79,19 @@ class Rule(Enum):
 
 
 class RuleMatcher:
-    direction: Rule  # default rule
-    rules: Optional[Dict[str, Rule]]  # static rules table
+    """Rule matcher.
+
+    Rule match domain or domain's super domain by calling
+    matcher.match(domain).
+
+    Attributes:
+        direction: Default rule when missing.
+        rules: Static rules table, map from domain to rule, leave None means
+          don't use rule.
+
+    """
+    direction: Rule
+    rules: Optional[Dict[str, Rule]]
 
     def __init__(self,
                  direction: str = 'direct',
@@ -92,7 +112,7 @@ class RuleMatcher:
             rule_file: Rule set file path.
 
         Returns:
-            Dict from domain to rule.
+            A dict map from domain to rule.
         """
         rules = dict()
         with open(rule_file) as rf:
