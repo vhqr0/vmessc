@@ -62,8 +62,8 @@ class VmessConfig:
         config_file: Persistent configure file path.
         fetch_url: URL to fetch subscribed-ed vmess nodes.
         local_url: Local addr:port to listen.
-        direction: Default rule passed to ruleMatcher.
-        rule_file: Rule set file path passed to ruleMatcher.
+        direction: Default rule passed to rule_matcher.
+        rule_file: Rule set file path passed to rule_matcher.
         log_level: Logging level, 'DEBUG', 'INFO', 'WARNING', etc.
         nodes: A set of peer vmess nodes.
     """

@@ -15,8 +15,8 @@ While `baidu.com`, `www.baidu.com` will match rule Direct, and
 
 Usage example:
 
-  ruleMatcher = RuleMatcher(direction='direct', rule_file='rule.txt')
-  rule = ruleMatcher.match('www.baidu.com')
+  rule_matcher = RuleMatcher(direction='direct', rule_file='rule.txt')
+  rule = rule_matcher.match('www.baidu.com')
   if rule == Rule.Block:
     print('block')
   elif rule == Rule.Direct:
@@ -26,6 +26,7 @@ Usage example:
 """
 
 import functools
+import argparse
 
 from typing import Optional, Dict
 from typing_extensions import Self
@@ -151,3 +152,26 @@ class RuleMatcher:
         if pos > 0:
             return self.match(domain[pos + 1:])
         return self.direction
+
+
+def main():
+    """Main entry to match rules of domains."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--direction', default='direct')
+    parser.add_argument('-r', '--rule-file', default='rule.txt')
+    parser.add_argument('domains', nargs=argparse.REMAINDER)
+    args = parser.parse_args()
+
+    direction = args.direction
+    rule_file = args.rule_file
+    domains = args.domains
+
+    matcher = RuleMatcher(direction=direction, rule_file=rule_file)
+
+    for domain in domains:
+        rule = matcher.match(domain)
+        print(f'{rule}\t{domain}')
+
+
+if __name__ == '__main__':
+    main()

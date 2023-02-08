@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-mypy -m vmessc
+mypy -m vmessc.cli

@@ -35,12 +35,12 @@ class VmessClient:
         local_addr: Addr to listen.
         local_port: Port to listen.
         peers: A set of peer vmess nodes.
-        ruleMatcher: Rule matcher.
+        rule_matcher: Rule matcher.
     """
     local_addr: str
     local_port: int
     peers: List[VmessNode]
-    ruleMatcher: RuleMatcher
+    rule_matcher: RuleMatcher
 
     logger = logging.getLogger('vmess_client')
 
@@ -57,13 +57,14 @@ class VmessClient:
             local_addr: Addr to listen.
             local_port: Port to listen.
             peers: A set of peer vmess nodes.
-            direction: Default rule passed to ruleMatcher.
-            rule_file: Rule set file path passed to ruleMatcher.
+            direction: Default rule passed to rule_matcher.
+            rule_file: Rule set file path passed to rule_matcher.
         """
         self.local_addr = local_addr
         self.local_port = local_port
         self.peers = peers
-        self.ruleMatcher = RuleMatcher(direction, rule_file)
+        self.rule_matcher = RuleMatcher(direction=direction,
+                                        rule_file=rule_file)
 
     def run(self):
         """Run client."""
@@ -99,7 +100,7 @@ class VmessClient:
             return
 
         try:
-            rule = self.ruleMatcher.match(acceptor.addr)
+            rule = self.rule_matcher.match(acceptor.addr)
             if rule == Rule.Block:
                 self.logger.info('[block]\tconnect to %s:%d', acceptor.addr,
                                  acceptor.port)

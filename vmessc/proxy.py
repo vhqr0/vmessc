@@ -21,12 +21,17 @@ Usage example:
 
 import re
 import struct
+from urllib.parse import urlparse
 import socket
 import asyncio
+import logging
+import argparse
 
 from typing import Optional, Set
 from typing_extensions import Self
 from asyncio import Task, StreamReader, StreamWriter
+
+from .rule import Rule, RuleMatcher
 
 
 class ProxyAcceptor:
@@ -268,3 +273,53 @@ class RawConnector:
             if not task2.cancelled():
                 task2.cancel()
             raise
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-l', '--local-url', default='http://localhost:1080')
+    parser.add_argument('-d', '--direction', default='direct')
+    parser.add_argument('-r', '--rule-file')
+    args = parser.parse_args()
+
+    local_url = urlparse(args.local_url)
+    direction = args.direction
+    rule_file = args.rule_file
+
+    rule_matcher = RuleMatcher(direction=direction, rule_file=rule_file)
+
+    async def proxy_handler(reader: StreamReader, writer: StreamWriter):
+        try:
+            acceptor = ProxyAcceptor(reader, writer)
+            await acceptor.accept()
+            rule = rule_matcher.match(acceptor.addr)
+            logging.info('[%s]\tconnect to %s:%d', rule, acceptor.addr,
+                         acceptor.port)
+            if rule == Rule.Block:
+                return
+            connector = RawConnector.from_acceptor(acceptor)
+            await connector.connect()
+        except Exception as e:
+            logging.debug('[except]\t%s', e)
+
+    async def start_server():
+        server = await asyncio.start_server(proxy_handler,
+                                            local_url.hostname or 'localhost',
+                                            local_url.port or 1080,
+                                            reuse_address=True)
+        addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
+        logging.info('server start at %s', addrs)
+        async with server:
+            await server.serve_forever()
+
+    logging.basicConfig(level='DEBUG')
+    try:
+        asyncio.run(start_server())
+    except Exception as e:
+        logging.error('server except %s', e)
+    except KeyboardInterrupt:
+        print('keyboard quit')
+
+
+if __name__ == '__main__':
+    main()

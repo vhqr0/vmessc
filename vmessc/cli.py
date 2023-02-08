@@ -10,6 +10,7 @@ Usage example:
 
 from urllib.parse import urlparse
 import logging
+import argparse
 
 from typing import List
 from cmd import Cmd
@@ -27,7 +28,7 @@ class VmessCli(Cmd):
     config: VmessConfig
     keys: List[str]
 
-    keys = ['fetch_url', 'direction', 'rule_file', 'log_level', 'local_url']
+    keys = ['fetch_url', 'local_url', 'direction', 'rule_file', 'log_level']
 
     intro = 'Welcome to vmess cli. Type help or ? to list commands.\n'
     prompt = 'vmess cli $ '
@@ -51,14 +52,14 @@ class VmessCli(Cmd):
             k, v = args.split(maxsplit=1)
             if k == 'fetch_url':
                 self.config.fetch_url = urlparse(v)
+            elif k == 'local_url':
+                self.config.local_url = urlparse(v)
             elif k == 'direction':
                 self.config.direction = v
             elif k == 'rule_file':
                 self.config.rule_file = v
             elif k == 'log_level':
-                self.config.log_level = v
-            elif k == 'local_url':
-                self.config.local_url = urlparse(v)
+                self.config.log_level = v.upper()
             else:
                 raise ValueError(f'invalid args {args}')
             self.config.save()
@@ -109,3 +110,33 @@ class VmessCli(Cmd):
             self.config.save()
         except Exception as e:
             print('fetch failed: %s', e)
+
+
+def main():
+    """Main entry to run VmessCli.
+
+    Run command if provided, or else run command loop.
+    """
+    parser = argparse.ArgumentParser(
+        prog='vmessc',
+        description='vmess proxy protocol client',
+    )
+    parser.add_argument('-c', '--config-file', default='config.json')
+    parser.add_argument('command', nargs=argparse.REMAINDER)
+    args = parser.parse_args()
+
+    config_file = args.config_file
+    command = args.command
+
+    cli = VmessCli(config_file=config_file)
+    try:
+        if command:
+            cli.onecmd(' '.join(command))
+        else:
+            cli.cmdloop()
+    except KeyboardInterrupt:
+        print('keyboard quit')
+
+
+if __name__ == '__main__':
+    main()
