@@ -24,9 +24,9 @@ import struct
 import socket
 import asyncio
 
-from typing import Optional
+from typing import Optional, Set
 from typing_extensions import Self
-from asyncio import StreamReader, StreamWriter
+from asyncio import Task, StreamReader, StreamWriter
 
 
 class ProxyAcceptor:
@@ -209,7 +209,7 @@ class RawConnector:
     port: int
     rest: bytes
 
-    tasks = set()
+    tasks: Set[Task] = set()
 
     def __init__(self, reader: StreamReader, writer: StreamWriter, addr: str,
                  port: int, rest: bytes):

@@ -8,6 +8,7 @@ Usage example:
   cli.cmdloop()
 """
 
+from urllib.parse import urlparse
 import logging
 
 from typing import List
@@ -49,7 +50,7 @@ class VmessCli(Cmd):
         try:
             k, v = args.split(maxsplit=1)
             if k == 'fetch_url':
-                self.config.fetch_url = v
+                self.config.fetch_url = urlparse(v)
             elif k == 'direction':
                 self.config.direction = v
             elif k == 'rule_file':
@@ -57,7 +58,7 @@ class VmessCli(Cmd):
             elif k == 'log_level':
                 self.config.log_level = v
             elif k == 'local_url':
-                self.config.local_url = v
+                self.config.local_url = urlparse(v)
             else:
                 raise ValueError(f'invalid args {args}')
             self.config.save()

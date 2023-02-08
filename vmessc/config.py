@@ -10,10 +10,10 @@ Config example:
 
   {
     "fetch_url": "https://example.net",
+    "local_url": "http://localhost:1080",
     "direction": "direct",
     "rule_file": "rule.txt",
     "log_level": "INFO",
-    "local_url": "http://localhost:1080",
     "nodes": [
       {
         "ps": "peer1",
@@ -61,18 +61,18 @@ class VmessConfig:
     Attributes:
         config_file: Persistent configure file path.
         fetch_url: URL to fetch subscribed-ed vmess nodes.
+        local_url: Local addr:port to listen.
         direction: Default rule passed to ruleMatcher.
         rule_file: Rule set file path passed to ruleMatcher.
         log_level: Logging level, 'DEBUG', 'INFO', 'WARNING', etc.
-        local_url: Local addr:port to listen.
         nodes: A set of peer vmess nodes.
     """
     config_file: str
-    fetch_url: Optional[URL]
+    fetch_url: URL
+    local_url: URL
     direction: Optional[str]
     rule_file: Optional[str]
     log_level: Optional[str]
-    local_url: Optional[URL]
     nodes: List[VmessNode]
 
     url_re = re.compile('^([0-9a-zA-Z]+)://(.*)$')
@@ -83,20 +83,20 @@ class VmessConfig:
             config_file: Persistent configure file path.
         """
         self.config_file = config_file
-        self.fetch_url = None
+        self.fetch_url = urlparse('http:')
+        self.local_url = urlparse('http:')
         self.direction = None
         self.rule_file = None
         self.log_level = None
-        self.local_url = None
         self.nodes = []
 
     def print(self):
         """Print config."""
         print(f'fetch_url:\t{self.fetch_url.geturl()}')
+        print(f'local_url:\t{self.local_url.geturl()}')
         print(f'direction:\t{self.direction}')
         print(f'rule_file:\t{self.rule_file}')
         print(f'log_level:\t{self.log_level}')
-        print(f'local_url:\t{self.local_url.geturl()}')
         print('--- nodes ---')
         for index, node in enumerate(self.nodes):
             print(f'{index}: {node}')
@@ -109,17 +109,17 @@ class VmessConfig:
     def load(self):
         """Load config."""
         if not os.path.exists(self.config_file):
+            self.local_url = urlparse('http://localhost:1080')
             self.direction = 'direct'
             self.log_level = 'INFO'
-            self.local_url = urlparse('http://localhost:1080')
             return
         with open(self.config_file) as cf:
             data = json.load(cf)
             self.fetch_url = urlparse(data.get('fetch_url') or 'http:')
+            self.local_url = urlparse(data.get('local_url') or 'http:')
             self.direction = data.get('direction') or 'direct'
             self.rule_file = data.get('rule_file')
             self.log_level = data.get('log_level') or 'INFO'
-            self.local_url = urlparse(data.get('local_url') or 'http:')
             self.nodes = []
             nodes = data.get('nodes')
             if isinstance(nodes, list):
@@ -133,10 +133,10 @@ class VmessConfig:
         """
         return {
             'fetch_url': self.fetch_url.geturl(),
+            'local_url': self.local_url.geturl(),
             'direction': self.direction,
             'rule_file': self.rule_file,
             'log_level': self.log_level,
-            'local_url': self.local_url.geturl(),
             'nodes': [node.to_dict() for node in self.nodes],
         }
 
@@ -210,18 +210,17 @@ class VmessConfig:
         res = requests.get(self.fetch_url.geturl(), proxies=proxies)
         if res.status_code != 200:
             res.raise_for_status()
-        data = base64.decodebytes(res.content).decode()
-        urls = data.split('\r\n')
+        content = base64.decodebytes(res.content).decode()
+        urls = content.split('\r\n')
         self.nodes = []
         for url in urls:
             re_res = self.url_re.match(url)
             if re_res is None:
-                return
-            scheme = re_res[1]
-            if scheme != 'vmess':
+                raise ValueError('invalid url')
+            if re_res[1] != 'vmess':
                 continue
-            data = base64.decodebytes(re_res[2].encode()).decode()
-            data = json.loads(data)
+            content = base64.decodebytes(re_res[2].encode()).decode()
+            data = json.loads(content)
             if data['net'] != 'tcp':
                 continue
             self.nodes.append(

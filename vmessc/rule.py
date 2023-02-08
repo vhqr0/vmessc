@@ -70,11 +70,11 @@ class Rule(Enum):
         """
         s = s.lower()
         if s == 'block':
-            return cls.Block
+            return cls(cls.Block)
         elif s == 'direct':
-            return cls.Direct
+            return cls(cls.Direct)
         elif s == 'forward':
-            return cls.Forward
+            return cls(cls.Forward)
         raise ValueError(f'invalid rule string: {s}')
 
 

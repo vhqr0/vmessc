@@ -21,9 +21,9 @@ from typing import Optional, List
 from asyncio import StreamReader, StreamWriter
 
 from .node import VmessNode
+from .rule import Rule, RuleMatcher
 from .proxy import ProxyAcceptor, RawConnector
 from .vmess import VmessConnector
-from .rule import Rule, RuleMatcher
 
 
 class VmessClient:
@@ -107,14 +107,14 @@ class VmessClient:
             if rule == Rule.Direct:
                 self.logger.info('[direct]\tconnect to %s:%d', acceptor.addr,
                                  acceptor.port)
-                connector = RawConnector.from_acceptor(acceptor)
-                await connector.connect()
+                raw_connector = RawConnector.from_acceptor(acceptor)
+                await raw_connector.connect()
             elif rule == Rule.Forward:
                 peer = random.choice(self.peers)
                 self.logger.info('[forward]\tconnect to %s:%d via %s',
                                  acceptor.addr, acceptor.port, peer.ps)
-                connector = VmessConnector.from_acceptor(acceptor, peer)
-                await connector.connect()
+                vmess_connector = VmessConnector.from_acceptor(acceptor, peer)
+                await vmess_connector.connect()
         except Exception as e:
             self.logger.debug('[except]\twhile connecting to %s:%d: %s',
                               acceptor.addr, acceptor.port, e)
