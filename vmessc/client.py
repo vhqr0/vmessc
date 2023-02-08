@@ -14,10 +14,13 @@ Usage example:
 """
 
 import random
-import logging
+from urllib.parse import urlparse
 import asyncio
+import logging
+import argparse
 
 from typing import Optional, List
+from uuid import UUID
 from asyncio import StreamReader, StreamWriter
 
 from .node import VmessNode
@@ -119,3 +122,40 @@ class VmessClient:
         except Exception as e:
             self.logger.debug('[except]\twhile connecting to %s:%d: %s',
                               acceptor.addr, acceptor.port, e)
+
+
+def main():
+    """Main entry to run client with one peer."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument()
+    parser.add_argument('-l', '--local-url', default='http://localhost:1080')
+    parser.add_argument('-p', '--peer-url', default='vmess://localhost:443')
+    parser.add_argument('-u', '--uuid')
+    parser.add_argument('-d', '--direction', default='direct')
+    parser.add_argument('-r', '--rule-file')
+    args = parser.parse_args()
+
+    local_url = urlparse(args.local_url)
+    peer_url = urlparse(args.peer_url)
+    uuid = UUID(args.uuid)
+    direction = args.direction
+    rule_file = args.rule_file
+
+    peer = VmessNode.from_dict({
+        'ps': 'vmessc',
+        'addr': peer_url.hostname or 'localhost',
+        'port': peer_url.port or 443,
+        'uuid': uuid,
+        'delay': -1.0,
+    })
+
+    client = VmessClient(local_addr=local_url.hostname or 'localhost',
+                         local_port=local_url.port or 1080,
+                         peers=[peer],
+                         direction=direction,
+                         rule_file=rule_file)
+    client.run()
+
+
+if __name__ == '__main__':
+    main()

@@ -43,7 +43,7 @@ class ProxyAcceptor:
 
     Attributes:
         reader: Client reader.
-        writer: Clinet writer.
+        writer: Client writer.
         buf: Buffer to store request.
         addr: Addr of requested host.
         port: Port of requested host.
@@ -199,7 +199,7 @@ class RawConnector:
 
     Attributes:
         reader: Client reader.
-        writer: Clinet writer.
+        writer: Client writer.
         peer_reader: Peer reader.
         peer_writer: Peer writer.
         addr: Addr of requested host.
@@ -276,6 +276,7 @@ class RawConnector:
 
 
 def main():
+    """Main entry to run a rule based proxy, auto detect http/socks5."""
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', '--local-url', default='http://localhost:1080')
     parser.add_argument('-d', '--direction', default='direct')

@@ -1,4 +1,4 @@
-"""Vmess clinet command line interface.
+"""Vmess client command line interface.
 
 Call VmessConfig methods in command line with completion.
 

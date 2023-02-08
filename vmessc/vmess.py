@@ -65,7 +65,7 @@ class VmessConnector:
 
     Attributes:
         reader: Client reader.
-        writer: Clinet writer.
+        writer: Client writer.
         peer_reader: Peer reader.
         peer_writer: Peer writer.
         addr: Addr of requested host.
