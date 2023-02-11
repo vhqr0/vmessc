@@ -47,7 +47,7 @@ def fnv32a(buf: bytes) -> bytes:
         buf: Buffer to checksum.
 
     Returns:
-        32-bit checksum results.
+        32-bit checksum result.
     """
     hval = 0x811c9dc5
     fnv_32_prime = 0x01000193
@@ -198,9 +198,7 @@ class VmessConnector:
         req += fnv32a(req)
 
         cipher = Cipher(
-            AES(
-                md5(self.peer.uuid.bytes +
-                    b'c48619fe-8f02-49e0-b9e9-edf763e17e21').digest()),
+            AES(self.peer.req_key),
             CFB(md5(4 * ts_bytes).digest()),
         )
         encryptor = cipher.encryptor()

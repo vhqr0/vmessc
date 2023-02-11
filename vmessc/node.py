@@ -4,6 +4,8 @@ Provide a serializable class VmessNode to represent a vmess node.
 """
 
 import time
+import functools
+import hashlib
 import socket
 
 from typing_extensions import Self
@@ -37,6 +39,8 @@ class VmessNode:
     uuid: UUID
     delay: float
 
+    req_key_const = b'c48619fe-8f02-49e0-b9e9-edf763e17e21'
+
     def __init__(self, ps: str, addr: str, port: int, uuid: UUID,
                  delay: float):
         """
@@ -55,6 +59,10 @@ class VmessNode:
 
     def __str__(self) -> str:
         return f'{self.ps}\t{self.addr}:{self.port}\t{self.delay}'
+
+    @functools.cached_property
+    def req_key(self) -> bytes:
+        return hashlib.md5(self.uuid.bytes + self.req_key_const).digest()
 
     @classmethod
     def from_dict(cls, obj: dict) -> Self:

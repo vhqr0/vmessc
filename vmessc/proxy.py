@@ -287,6 +287,8 @@ def main():
     direction = args.direction
     rule_file = args.rule_file
 
+    logging.basicConfig(level='DEBUG')
+
     rule_matcher = RuleMatcher(direction=direction, rule_file=rule_file)
 
     async def proxy_handler(reader: StreamReader, writer: StreamWriter):
@@ -312,8 +314,6 @@ def main():
         logging.info('server start at %s', addrs)
         async with server:
             await server.serve_forever()
-
-    logging.basicConfig(level='DEBUG')
     try:
         asyncio.run(start_server())
     except Exception as e:

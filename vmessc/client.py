@@ -141,6 +141,8 @@ def main():
     direction = args.direction
     rule_file = args.rule_file
 
+    logging.basicConfig(level='DEBUG')
+
     peer = VmessNode.from_dict({
         'ps': 'vmessc',
         'addr': peer_url.hostname or 'localhost',
