@@ -62,7 +62,10 @@ class VmessNode:
 
     @functools.cached_property
     def req_key(self) -> bytes:
-        return hashlib.md5(self.uuid.bytes + self.req_key_const).digest()
+        h = hashlib.md5()
+        h.update(self.uuid.bytes)
+        h.update(self.req_key_const)
+        return h.digest()
 
     @classmethod
     def from_dict(cls, obj: dict) -> Self:
