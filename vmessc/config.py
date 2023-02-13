@@ -215,9 +215,7 @@ class VmessConfig:
         self.nodes = []
         for url in urls:
             re_res = self.url_re.match(url)
-            if re_res is None:
-                raise ValueError('invalid url')
-            if re_res[1] != 'vmess':
+            if re_res is None or re_res[1] != 'vmess':
                 continue
             content = base64.decodebytes(re_res[2].encode()).decode()
             data = json.loads(content)

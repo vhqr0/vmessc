@@ -81,7 +81,7 @@ class VmessCli(Cmd):
             logging.basicConfig(level=self.config.log_level)
             self.config.run([int(arg) for arg in args.split()])
         except Exception as e:
-            print('run failed: %s', e)
+            print(f'run failed: {e}')
 
     def do_delete(self, args: str):
         """Do delete."""
@@ -90,7 +90,7 @@ class VmessCli(Cmd):
             self.config.print()
             self.config.save()
         except Exception as e:
-            print('delete failed: %s', e)
+            print(f'delete failed: {e}')
 
     def do_ping(self, args: str):
         """Do ping."""
@@ -99,7 +99,7 @@ class VmessCli(Cmd):
             self.config.print()
             self.config.save()
         except Exception as e:
-            print('ping failed: %s', e)
+            print(f'ping failed: {e}')
 
     def do_fetch(self, args: str):
         """Do fetch."""
@@ -109,7 +109,7 @@ class VmessCli(Cmd):
             self.config.print()
             self.config.save()
         except Exception as e:
-            print('fetch failed: %s', e)
+            print(f'fetch failed: {e}')
 
 
 def main():
