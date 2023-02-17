@@ -27,9 +27,9 @@ import asyncio
 import logging
 import argparse
 
-from typing import Optional, Set
+from typing import Optional
 from typing_extensions import Self
-from asyncio import Task, StreamReader, StreamWriter
+from asyncio import StreamReader, StreamWriter
 
 from .rule import Rule, RuleMatcher
 
@@ -185,9 +185,8 @@ async def io_copy(reader: StreamReader, writer: StreamWriter):
             if writer.can_write_eof():
                 writer.write_eof()
             break
-        else:
-            writer.write(buf)
-            await writer.drain()
+        writer.write(buf)
+        await writer.drain()
 
 
 class RawConnector:
@@ -213,8 +212,6 @@ class RawConnector:
     addr: str
     port: int
     rest: bytes
-
-    tasks: Set[Task] = set()
 
     def __init__(self, reader: StreamReader, writer: StreamWriter, addr: str,
                  port: int, rest: bytes):
@@ -260,19 +257,29 @@ class RawConnector:
 
         task1 = asyncio.create_task(io_copy(self.reader, self.peer_writer))
         task2 = asyncio.create_task(io_copy(self.peer_reader, self.writer))
-        self.tasks.add(task1)
-        self.tasks.add(task2)
-        task1.add_done_callback(self.tasks.discard)
-        task2.add_done_callback(self.tasks.discard)
+
+        exc = None
 
         try:
             await asyncio.gather(task1, task2)
-        except Exception:
+        except Exception as e:
+            exc = e
             if not task1.cancelled():
                 task1.cancel()
             if not task2.cancelled():
                 task2.cancel()
-            raise
+
+        try:
+            self.writer.close()
+            self.peer_writer.close()
+            await self.writer.wait_closed()
+            await self.peer_writer.wait_closed()
+        except Exception as e:
+            if exc is None:
+                exc = e
+
+        if exc is not None:
+            raise exc
 
 
 def main():
@@ -314,6 +321,7 @@ def main():
         logging.info('server start at %s', addrs)
         async with server:
             await server.serve_forever()
+
     try:
         asyncio.run(start_server())
     except Exception as e:

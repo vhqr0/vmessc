@@ -102,6 +102,8 @@ class VmessClient:
             self.logger.debug('[except]\twhile accepting: %s', e)
             return
 
+        peer = None  # for logging
+
         try:
             rule = self.rule_matcher.match(acceptor.addr)
             if rule == Rule.Block:
@@ -120,8 +122,13 @@ class VmessClient:
                 vmess_connector = VmessConnector.from_acceptor(acceptor, peer)
                 await vmess_connector.connect()
         except Exception as e:
-            self.logger.debug('[except]\twhile connecting to %s:%d: %s',
-                              acceptor.addr, acceptor.port, e)
+            if peer is not None:
+                self.logger.debug(
+                    '[except]\twhile connecting to %s:%d via %s: %s',
+                    acceptor.addr, acceptor.port, peer.ps, e)
+            else:
+                self.logger.debug('[except]\twhile connecting to %s:%d: %s',
+                                  acceptor.addr, acceptor.port, e)
 
 
 def main():

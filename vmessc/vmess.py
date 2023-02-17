@@ -32,9 +32,9 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CFB
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from typing import Optional, Set
+from typing import Optional
 from typing_extensions import Self
-from asyncio import Task, StreamReader, StreamWriter
+from asyncio import StreamReader, StreamWriter
 
 from .node import VmessNode
 from .proxy import ProxyAcceptor
@@ -88,8 +88,6 @@ class VmessConnector:
     iv: bytes
     rv: int
 
-    tasks: Set[Task] = set()
-
     def __init__(self, reader: StreamReader, writer: StreamWriter, addr: str,
                  port: int, rest: bytes, peer: VmessNode):
         """
@@ -138,19 +136,29 @@ class VmessConnector:
 
         task1 = asyncio.create_task(self.io_copy_from_client())
         task2 = asyncio.create_task(self.io_copy_from_peer())
-        self.tasks.add(task1)
-        self.tasks.add(task2)
-        task1.add_done_callback(self.tasks.discard)
-        task2.add_done_callback(self.tasks.discard)
+
+        exc = None
 
         try:
             await asyncio.gather(task1, task2)
-        except Exception:
+        except Exception as e:
+            exc = e
             if not task1.cancelled():
                 task1.cancel()
             if not task2.cancelled():
                 task2.cancel()
-            raise
+
+        try:
+            self.writer.close()
+            self.peer_writer.close()
+            await self.writer.wait_closed()
+            await self.peer_writer.wait_closed()
+        except Exception as e:
+            if exc is None:
+                exc = e
+
+        if exc is not None:
+            raise exc
 
     def pack_req(self) -> bytes:
         """Pack vmess request.
@@ -259,6 +267,10 @@ class VmessConnector:
                     self.writer.write_eof()
                 break
             buf = aesgcm.decrypt(struct.pack('!H', count) + iv, buf, b'')
+            if len(buf) == 0:
+                if self.writer.can_write_eof():
+                    self.writer.write_eof()
+                break
             self.writer.write(buf)
             await self.writer.drain()
             count += 1
