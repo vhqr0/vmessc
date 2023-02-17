@@ -32,6 +32,7 @@ class VmessNode:
         port: Port of vmess service.
         uuid: Identity to connect to vmess service.
         delay: Time to connect to node, while -1 means timeout.
+        weight: Internal use only, to dynamicly discard unworked nodes.
     """
     ps: str
     addr: str
@@ -109,7 +110,7 @@ class VmessNode:
         self.weight += self.WEIGHT_INCREASE_STEP
 
     def weight_decrease(self):
-        self.weight += self.WEIGHT_DECREASE_STEP
+        self.weight -= self.WEIGHT_DECREASE_STEP
         self.weight = max(self.weight, self.WEIGHT_MIN)
 
     def ping(self):
