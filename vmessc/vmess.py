@@ -32,9 +32,9 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CFB
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from typing import Optional
+from typing import Optional, Set
 from typing_extensions import Self
-from asyncio import StreamReader, StreamWriter
+from asyncio import Task, StreamReader, StreamWriter
 
 from .node import VmessNode
 from .proxy import ProxyAcceptor
@@ -88,6 +88,8 @@ class VmessConnector:
     iv: bytes
     rv: int
 
+    tasks: Set[Task] = set()
+
     def __init__(self, reader: StreamReader, writer: StreamWriter, addr: str,
                  port: int, rest: bytes, peer: VmessNode):
         """
@@ -136,6 +138,10 @@ class VmessConnector:
 
         task1 = asyncio.create_task(self.io_copy_from_client())
         task2 = asyncio.create_task(self.io_copy_from_peer())
+        self.tasks.add(task1)
+        self.tasks.add(task2)
+        task1.add_done_callback(self.tasks.discard)
+        task2.add_done_callback(self.tasks.discard)
 
         exc = None
 
