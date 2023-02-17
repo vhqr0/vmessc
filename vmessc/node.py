@@ -38,6 +38,12 @@ class VmessNode:
     port: int
     uuid: UUID
     delay: float
+    weight: float
+
+    WEIGHT_INITIAL = 20.0
+    WEIGHT_MIN = 1.0
+    WEIGHT_INCREASE_STEP = 0.1
+    WEIGHT_DECREASE_STEP = 1.0
 
     req_key_const = b'c48619fe-8f02-49e0-b9e9-edf763e17e21'
 
@@ -50,12 +56,14 @@ class VmessNode:
             port: Port of vmess service.
             uuid: Identity to connect to vmess service.
             delay: Time to connect to node, while -1 means timeout.
+            weight: Internal use only, to dynamicly discard unworked nodes.
         """
         self.ps = ps
         self.addr = addr
         self.port = port
         self.uuid = uuid
         self.delay = delay
+        self.weight = self.WEIGHT_INITIAL
 
     def __str__(self) -> str:
         return f'{self.ps}\t{self.addr}:{self.port}\t{self.delay}'
@@ -96,6 +104,13 @@ class VmessNode:
             'uuid': str(self.uuid),
             'delay': self.delay,
         }
+
+    def weight_increase(self):
+        self.weight += self.WEIGHT_INCREASE_STEP
+
+    def weight_decrease(self):
+        self.weight += self.WEIGHT_DECREASE_STEP
+        self.weight = max(self.weight, self.WEIGHT_MIN)
 
     def ping(self):
         """Measure delay time."""

@@ -63,6 +63,9 @@ class VmessClient:
             direction: Default rule passed to rule_matcher.
             rule_file: Rule set file path passed to rule_matcher.
         """
+        if not peers:
+            raise ValueError('no peers specified')
+
         self.local_addr = local_addr
         self.local_port = local_port
         self.peers = peers
@@ -102,7 +105,7 @@ class VmessClient:
             self.logger.debug('[except]\twhile accepting: %s', e)
             return
 
-        peer = None  # for logging
+        peer: Optional[VmessNode] = None
 
         try:
             rule = self.rule_matcher.match(acceptor.addr)
@@ -116,13 +119,16 @@ class VmessClient:
                 raw_connector = RawConnector.from_acceptor(acceptor)
                 await raw_connector.connect()
             elif rule == Rule.Forward:
-                peer = random.choice(self.peers)
+                peer, = random.choices(
+                    self.peers, weights=[peer.weight for peer in self.peers])
                 self.logger.info('[forward]\tconnect to %s:%d via %s',
                                  acceptor.addr, acceptor.port, peer.ps)
                 vmess_connector = VmessConnector.from_acceptor(acceptor, peer)
                 await vmess_connector.connect()
+                peer.weight_increase()
         except Exception as e:
             if peer is not None:
+                peer.weight_decrease()
                 self.logger.debug(
                     '[except]\twhile connecting to %s:%d via %s: %s',
                     acceptor.addr, acceptor.port, peer.ps, e)
