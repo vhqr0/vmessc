@@ -239,11 +239,12 @@ class VmessConfig:
     def fetch(self, proxy: Optional[str] = None):
         """Fetch subscribed-ed nodes.
 
+        Notice that fetch from https url via http proxy have some
+        problems, socks5h is recommended.
+
         Args:
             proxy: Proxy to use while fetching.
         """
-        if self.fetch_url.hostname is None:
-            raise ValueError('invalid fetch url')
         proxies = {}
         if proxy is not None:
             proxies = {'http': proxy, 'https': proxy}
