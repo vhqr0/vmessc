@@ -24,6 +24,7 @@ from uuid import UUID
 from asyncio import StreamReader, StreamWriter
 
 from .defaults import (
+    RULE_FILE,
     DIRECTION,
     LOCAL_URL,
     LOCAL_ADDR,
@@ -65,7 +66,7 @@ class VmessClient:
         local_port: int,
         peers: List[VmessNode],
         direction: str = DIRECTION,
-        rule_file: Optional[str] = None,
+        rule_file: str = RULE_FILE,
     ):
         """
         Args:
@@ -157,7 +158,7 @@ def main():
     parser.add_argument('-p', '--peer-url', default=PEER_URL)
     parser.add_argument('-u', '--uuid')
     parser.add_argument('-d', '--direction', default=DIRECTION)
-    parser.add_argument('-r', '--rule-file')
+    parser.add_argument('-r', '--rule-file', default=RULE_FILE)
     args = parser.parse_args()
 
     local_url = urlparse(args.local_url)

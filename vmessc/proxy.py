@@ -32,6 +32,7 @@ from typing_extensions import Self
 from asyncio import Task, StreamReader, StreamWriter
 
 from .defaults import (
+    RULE_FILE,
     DIRECTION,
     LOCAL_URL,
     LOCAL_ADDR,
@@ -303,7 +304,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', '--local-url', default=LOCAL_URL)
     parser.add_argument('-d', '--direction', default=DIRECTION)
-    parser.add_argument('-r', '--rule-file')
+    parser.add_argument('-r', '--rule-file', default=RULE_FILE)
     args = parser.parse_args()
 
     local_url = urlparse(args.local_url)

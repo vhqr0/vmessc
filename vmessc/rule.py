@@ -25,7 +25,9 @@ Usage example:
     print('forward')
 """
 
+import os.path
 import functools
+import logging
 import argparse
 
 from typing import Optional, Dict
@@ -92,26 +94,23 @@ class RuleMatcher:
 
     Attributes:
         direction: Default rule when missing.
-        rules: Static rules table, map from domain to rule, leave None means
-          don't use rule.
-
+        rules: Dict from domain to rule, None means don't use rule.
     """
     direction: Rule
     rules: Optional[Dict[str, Rule]]
 
-    def __init__(self,
-                 direction: str = DIRECTION,
-                 rule_file: Optional[str] = None):
+    def __init__(self, direction: str = DIRECTION, rule_file: str = RULE_FILE):
         """
         Args:
             direction: String of default rule.
-            rule_file: Rule set file path, leave None means don't use rule.
+            rule_file: Rule set file path, leave empty or non-exists path
+              means don't use rule.
         """
         self.direction = Rule.from_string(direction)
-        self.rules = self.load(rule_file) if rule_file else None
+        self.rules = self.load(rule_file)
 
     @classmethod
-    def load(cls, rule_file: str) -> Dict[str, Rule]:
+    def load(cls, rule_file: str) -> Optional[Dict[str, Rule]]:
         """Load rule from rule set file.
 
         Args:
@@ -120,7 +119,15 @@ class RuleMatcher:
         Returns:
             A dict map from domain to rule.
         """
+        rule_file = rule_file.strip()
+        if len(rule_file) == 0:
+            return None
+        if os.path.exists(rule_file):
+            logging.warning('rule file is not exists: %s', rule_file)
+            return None
+
         rules = dict()
+
         with open(rule_file) as rf:
             for line in rf:
                 line = line.strip()
@@ -135,6 +142,7 @@ class RuleMatcher:
                     # previous rule has higher priority
                     continue
                 rules[domain] = rule
+
         return rules
 
     @functools.cache

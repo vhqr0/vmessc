@@ -56,6 +56,7 @@ from urllib.parse import ParseResult as URL
 
 from .defaults import (
     CONFIG_FILE,
+    RULE_FILE,
     DIRECTION,
     LOCAL_URL,
     LOCAL_ADDR,
@@ -144,7 +145,7 @@ class VmessConfig:
             self.fetch_url = urlparse(data.get('fetch_url') or FETCH_URL)
             self.local_url = urlparse(data.get('local_url') or LOCAL_URL)
             self.direction = data.get('direction') or DIRECTION
-            self.rule_file = data.get('rule_file')
+            self.rule_file = data.get('rule_file') or RULE_FILE
             self.log_level = data.get('log_level') or LOG_LEVEL
             self.log_format = data.get('log_format') or LOG_FORMAT
             self.log_datefmt = data.get('log_datefmt') or LOG_DATEFMT
@@ -208,7 +209,7 @@ class VmessConfig:
             local_port=self.local_url.port or LOCAL_PORT,
             peers=[node for node in nodes if node.delay > 0.0],
             direction=self.direction or DIRECTION,
-            rule_file=self.rule_file,
+            rule_file=self.rule_file or RULE_FILE,
         )
         client.run()
 
