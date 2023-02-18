@@ -1,14 +1,23 @@
 """Vmess node representation.
 
-Provide a serializable class VmessNode to represent a vmess node.
+Subscribe format:
+  https://github.com/2dust/v2rayN/wiki/%E5%88%86%E4%BA%AB%E9%93%BE%E6%8E%A5%E6%A0%BC%E5%BC%8F%E8%AF%B4%E6%98%8E(ver-2)
+
+Provide a serializable and fetchable vmess node class.
 """
 
 import time
+import re
 import functools
 import hashlib
+import base64
+import json
 import socket
 
+import requests
+
 from typing_extensions import Self
+from typing import List
 from uuid import UUID
 
 from .defaults import (
@@ -50,6 +59,8 @@ class VmessNode:
 
     REQ_KEY_SUFFIX = b'c48619fe-8f02-49e0-b9e9-edf763e17e21'
 
+    fetch_url_re = re.compile('^([0-9a-zA-Z]+)://(.*)$')
+
     def __init__(self,
                  name: str,
                  addr: str,
@@ -73,15 +84,34 @@ class VmessNode:
         self.delay = delay
         self.weight = weight
 
-    def __str__(self) -> str:
-        return f'{self.name} W{int(self.weight)}'
-
     @functools.cached_property
     def req_key(self) -> bytes:
         h = hashlib.md5()
         h.update(self.uuid.bytes)
         h.update(self.REQ_KEY_SUFFIX)
         return h.digest()
+
+    def __str__(self) -> str:
+        return f'{self.name} W{int(self.weight)}'
+
+    def print(self, index):
+        """Print node."""
+        print(f'{index}:\t{self}\t{self.addr}:{self.port}\t{self.delay}')
+
+    def to_dict(self) -> dict:
+        """Convert VmessNode to dict.
+
+        Returns:
+            Dict initialized from VmessNode.
+        """
+        return {
+            'name': self.name,
+            'addr': self.addr,
+            'port': self.port,
+            'uuid': str(self.uuid),
+            'delay': self.delay,
+            'weight': self.weight,
+        }
 
     @classmethod
     def from_dict(cls, obj: dict) -> Self:
@@ -100,29 +130,54 @@ class VmessNode:
                    delay=float(obj['delay']),
                    weight=float(obj['weight']))
 
-    def to_dict(self) -> dict:
-        """Convert VmessNode to dict.
+    @classmethod
+    def fetch(cls, *args, **kwargs) -> List[Self]:
+        """Fetch subscribed vmess nodes.
 
-        Returns:
-            Dict initialized from VmessNode.
+        Args:
+            args, kwargs see requests.get.
+
+        Return:
+            A list of vmess nodes.
         """
-        return {
-            'name': self.name,
-            'addr': self.addr,
-            'port': self.port,
-            'uuid': str(self.uuid),
-            'delay': self.delay,
-            'weight': self.weight,
-        }
+        res = requests.get(*args, **kwargs)
+        if res.status_code != 200:
+            res.raise_for_status()
+        content = base64.decodebytes(res.content).decode()
+        urls = content.split('\r\n')
+
+        nodes = []
+        for url in urls:
+            re_res = cls.fetch_url_re.match(url)
+            if re_res is None or re_res[1] != 'vmess':
+                continue
+            content = base64.decodebytes(re_res[2].encode()).decode()
+            data = json.loads(content)
+            if data['net'] != 'tcp':
+                continue
+            nodes.append(
+                cls.from_dict({
+                    'name': data['ps'],
+                    'addr': data['add'],
+                    'port': data['port'],
+                    'uuid': data['uuid'],
+                    'delay': -1.0,
+                    'weight': WEIGHT_INITIAL,
+                }))
+
+        return nodes
 
     def weight_increase(self):
+        """Increase weight.
+
+        Called when a request was handled successfully."""
         self.weight = min(self.weight + WEIGHT_INCREASE_STEP, WEIGHT_MAXIMAL)
 
     def weight_decrease(self):
-        self.weight = max(self.weight - WEIGHT_DECREASE_STEP, WEIGHT_MINIMAL)
+        """Decrease weight.
 
-    def print(self, index):
-        print(f'{index}:\t{self}\t{self.addr}:{self.port}\t{self.delay}')
+        Called when a exception was raised while handling requests."""
+        self.weight = max(self.weight - WEIGHT_DECREASE_STEP, WEIGHT_MINIMAL)
 
     def ping(self):
         """Measure delay time."""

@@ -1,10 +1,6 @@
 """Subscribe and client config manager.
 
-Easy to fetch and manage subscribed-ed vmess nodes, and start client
-from a config file.
-
-Subscribe format:
-https://github.com/2dust/v2rayN/wiki/%E5%88%86%E4%BA%AB%E9%93%BE%E6%8E%A5%E6%A0%BC%E5%BC%8F%E8%AF%B4%E6%98%8E(ver-2)
+Easy to manage subscribed vmess nodes and start client, using a config file.
 
 Config example:
 
@@ -45,13 +41,10 @@ Usage example:
 
 import os
 import re
-import base64
 import json
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 import logging
-
-import requests
 
 from typing import Optional, List
 from urllib.parse import ParseResult as URL
@@ -67,8 +60,6 @@ from .defaults import (
     LOG_LEVEL,
     LOG_FORMAT,
     LOG_DATEFMT,
-    WEIGHT_INITIAL,
-    WEIGHT_MINIMAL,
 )
 from .node import VmessNode
 from .client import VmessClient
@@ -131,8 +122,18 @@ class VmessConfig:
 
     def save(self):
         """Save config."""
+        data = {
+            'fetch_url': self.fetch_url.geturl(),
+            'local_url': self.local_url.geturl(),
+            'direction': self.direction,
+            'rule_file': self.rule_file,
+            'log_level': self.log_level,
+            'log_format': self.log_format,
+            'log_datefmt': self.log_datefmt,
+            'nodes': [node.to_dict() for node in self.nodes],
+        }
         with open(self.config_file, 'w') as cf:
-            json.dump(self.to_dict(), cf)
+            json.dump(data, cf)
 
     def load(self):
         """Load config."""
@@ -158,23 +159,6 @@ class VmessConfig:
             if isinstance(nodes, list):
                 self.nodes = [VmessNode.from_dict(node) for node in nodes]
 
-    def to_dict(self) -> dict:
-        """Convert VmessConfig to dict.
-
-        Returns:
-            Dict initialized from VmessConfig.
-        """
-        return {
-            'fetch_url': self.fetch_url.geturl(),
-            'local_url': self.local_url.geturl(),
-            'direction': self.direction,
-            'rule_file': self.rule_file,
-            'log_level': self.log_level,
-            'log_format': self.log_format,
-            'log_datefmt': self.log_datefmt,
-            'nodes': [node.to_dict() for node in self.nodes],
-        }
-
     def get_nodes(self,
                   node_indexes: List[int],
                   exclusive: bool = False) -> List[VmessNode]:
@@ -196,7 +180,7 @@ class VmessConfig:
         nodes = [node for index, node in enumerate(self.nodes) if pred(index)]
         return nodes
 
-    def log_config(self):
+    def logging_config(self):
         logging.basicConfig(level=self.log_level,
                             format=self.log_format,
                             datefmt=self.log_datefmt)
@@ -211,7 +195,7 @@ class VmessConfig:
         client = VmessClient(
             local_addr=self.local_url.hostname or LOCAL_ADDR,
             local_port=self.local_url.port or LOCAL_PORT,
-            peers=[node for node in nodes if node.weight > WEIGHT_MINIMAL],
+            peers=nodes,
             direction=self.direction or DIRECTION,
             rule_file=self.rule_file or RULE_FILE,
         )
@@ -248,26 +232,4 @@ class VmessConfig:
         proxies = {}
         if proxy is not None:
             proxies = {'http': proxy, 'https': proxy}
-        res = requests.get(self.fetch_url.geturl(), proxies=proxies)
-        if res.status_code != 200:
-            res.raise_for_status()
-        content = base64.decodebytes(res.content).decode()
-        urls = content.split('\r\n')
-        self.nodes = []
-        for url in urls:
-            re_res = self.fetch_url_re.match(url)
-            if re_res is None or re_res[1] != 'vmess':
-                continue
-            content = base64.decodebytes(re_res[2].encode()).decode()
-            data = json.loads(content)
-            if data['net'] != 'tcp':
-                continue
-            self.nodes.append(
-                VmessNode.from_dict({
-                    'name': data['ps'],
-                    'addr': data['add'],
-                    'port': data['port'],
-                    'uuid': data['id'],
-                    'delay': -1.0,
-                    'weight': WEIGHT_INITIAL,
-                }))
+        self.nodes = VmessNode.fetch(self.fetch_url.geturl(), proxies=proxies)

@@ -80,7 +80,7 @@ class VmessCli(Cmd):
     def do_run(self, args: str):
         """Do run."""
         try:
-            self.config.log_config()
+            self.config.logging_config()
             self.config.run([int(arg) for arg in args.split()])
         except Exception as e:
             print(f'run failed: {e}')

@@ -37,6 +37,7 @@ from .defaults import (
     LOG_FORMAT,
     LOG_DATEFMT,
     WEIGHT_INITIAL,
+    WEIGHT_MINIMAL,
 )
 from .node import VmessNode
 from .rule import Rule, RuleMatcher
@@ -78,8 +79,9 @@ class VmessClient:
             direction: Default rule passed to rule_matcher.
             rule_file: Rule set file path passed to rule_matcher.
         """
+        peers = [peer for peer in peers if peer.weight >= WEIGHT_MINIMAL]
         if not peers:
-            raise ValueError('no peers specified')
+            raise ValueError('no avaiable peers specified')
 
         self.local_addr = local_addr
         self.local_port = local_port
