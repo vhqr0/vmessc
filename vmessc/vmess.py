@@ -258,8 +258,13 @@ class VmessConnector:
         encryptor = cipher.encryptor()
         buf = encryptor.update(buf) + encryptor.finalize()
         rrv, opts, cmd, clen = struct.unpack('!BBBB', buf)
-        if rrv != self.rv or opts != 0 or cmd != 0 or clen != 0:
-            raise struct.error('invalid vmess response')
+        if rrv != self.rv:
+            raise struct.error('invalid vmess response rv')
+        if opts != 0:
+            raise struct.error(f'invalid vmess response opts: {opts}')
+        if cmd != 0 or clen != 0:
+            raise struct.error(
+                f'invalid vmess response cmd: {cmd}, len: {clen}')
 
         aesgcm, iv, count = AESGCM(key), iv[2:12], 0
 
