@@ -173,7 +173,7 @@ def main():
                         datefmt=LOG_DATEFMT)
 
     peer = VmessNode.from_dict({
-        'ps': 'vmessc',
+        'name': 'vmessc',
         'addr': peer_url.hostname or PEER_ADDR,
         'port': peer_url.port or PEER_PORT,
         'uuid': peer_uuid,

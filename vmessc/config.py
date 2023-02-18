@@ -18,14 +18,14 @@ Config example:
     "log_datefmt": "%y-%m-%d %H:%M:%S",
     "nodes": [
       {
-        "ps": "peer1",
+        "name": "peer1",
         "addr": "peer1.net",
         "port": "80",
         "uuid": "...",
         "delay": 0.4
       },
       {
-        "ps": "peer2",
+        "name": "peer2",
         "addr": "peer2.net",
         "port": "443",
         "uuid": "...",
@@ -259,7 +259,7 @@ class VmessConfig:
                 continue
             self.nodes.append(
                 VmessNode.from_dict({
-                    'ps': data['ps'],
+                    'name': data['ps'],
                     'addr': data['add'],
                     'port': data['port'],
                     'uuid': data['id'],

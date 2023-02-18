@@ -122,7 +122,7 @@ class RuleMatcher:
         rule_file = rule_file.strip()
         if len(rule_file) == 0:
             return None
-        if os.path.exists(rule_file):
+        if not os.path.exists(rule_file):
             logging.warning('rule file is not exists: %s', rule_file)
             return None
 

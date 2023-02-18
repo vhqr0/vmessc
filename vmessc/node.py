@@ -24,9 +24,8 @@ class VmessNode:
     """Represent a vmess node.
 
     Basic information of a vmess node contains addr, port and uuid.
-    We additionally add a readable name: ps, which can extract from
-    subscribe, and delay time to connect to this node, while -1 means
-    timeout.
+    We additionally add a readable name, which can extract from subscribe,
+    and delay time to connect to this node, while -1 means timeout.
 
     Convert from:
         dict VmessNode.from_dict
@@ -35,14 +34,14 @@ class VmessNode:
         dict VmessNode.to_dict
 
     Attributes:
-        ps: Readable name.
+        name: Readable name.
         addr: Addr of node.
         port: Port of vmess service.
         uuid: Identity to connect to vmess service.
         delay: Time to connect to node, while -1 means timeout.
         weight: Internal use only, to dynamicly discard unworked nodes.
     """
-    ps: str
+    name: str
     addr: str
     port: int
     uuid: UUID
@@ -51,18 +50,18 @@ class VmessNode:
 
     REQ_KEY_SUFFIX = b'c48619fe-8f02-49e0-b9e9-edf763e17e21'
 
-    def __init__(self, ps: str, addr: str, port: int, uuid: UUID,
+    def __init__(self, name: str, addr: str, port: int, uuid: UUID,
                  delay: float):
         """
         Args:
-            ps: Readable name.
+            name: Readable name.
             addr: Addr of node.
             port: Port of vmess service.
             uuid: Identity to connect to vmess service.
             delay: Time to connect to node, while -1 means timeout.
             weight: Internal use only, to dynamicly discard unworked nodes.
         """
-        self.ps = ps
+        self.name = name
         self.addr = addr
         self.port = port
         self.uuid = uuid
@@ -70,7 +69,7 @@ class VmessNode:
         self.weight = WEIGHT_INITIAL
 
     def __str__(self) -> str:
-        return f'{self.ps} W{int(self.weight)}'
+        return f'{self.name} W{int(self.weight)}'
 
     @functools.cached_property
     def req_key(self) -> bytes:
@@ -84,12 +83,12 @@ class VmessNode:
         """Convert dict to VmessNode.
 
         Args:
-            obj: Dict contains ps, addr, port, uuid and delay.
+            obj: Dict contains name, addr, port, uuid and delay.
 
         Return:
             VmessNode initialized from dict.
         """
-        return cls(ps=str(obj['ps']),
+        return cls(name=str(obj['name']),
                    addr=str(obj['addr']),
                    port=int(obj['port']),
                    uuid=UUID(str(obj['uuid'])),
@@ -102,7 +101,7 @@ class VmessNode:
             Dict initialized from VmessNode.
         """
         return {
-            'ps': self.ps,
+            'name': self.name,
             'addr': self.addr,
             'port': self.port,
             'uuid': str(self.uuid),
@@ -116,7 +115,7 @@ class VmessNode:
         self.weight = max(self.weight - WEIGHT_DECREASE_STEP, WEIGHT_MINIMAL)
 
     def print(self, index):
-        print(f'{index}:\t{self.ps}\t{self.addr}:{self.port}\t{self.delay}')
+        print(f'{index}:\t{self.name}\t{self.addr}:{self.port}\t{self.delay}')
 
     def ping(self):
         """Measure delay time."""
@@ -129,4 +128,4 @@ class VmessNode:
             self.delay = end_time - start_time
         except Exception:
             pass
-        print(f'ping {self.ps}\t{self.delay}')
+        print(f'ping {self.name}\t{self.delay}')
