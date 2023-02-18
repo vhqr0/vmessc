@@ -22,14 +22,16 @@ Config example:
         "addr": "peer1.net",
         "port": "80",
         "uuid": "...",
-        "delay": 0.4
+        "delay": 0.4,
+        "weight": 20.0
       },
       {
         "name": "peer2",
         "addr": "peer2.net",
         "port": "443",
         "uuid": "...",
-        "delay": 0.5
+        "delay": 0.5,
+        "weight": 10.0
       },
     ]
   }
@@ -65,6 +67,8 @@ from .defaults import (
     LOG_LEVEL,
     LOG_FORMAT,
     LOG_DATEFMT,
+    WEIGHT_INITIAL,
+    WEIGHT_MINIMAL,
 )
 from .node import VmessNode
 from .client import VmessClient
@@ -207,7 +211,7 @@ class VmessConfig:
         client = VmessClient(
             local_addr=self.local_url.hostname or LOCAL_ADDR,
             local_port=self.local_url.port or LOCAL_PORT,
-            peers=[node for node in nodes if node.delay > 0.0],
+            peers=[node for node in nodes if node.weight > WEIGHT_MINIMAL],
             direction=self.direction or DIRECTION,
             rule_file=self.rule_file or RULE_FILE,
         )
@@ -264,4 +268,5 @@ class VmessConfig:
                     'port': data['port'],
                     'uuid': data['id'],
                     'delay': -1.0,
+                    'weight': WEIGHT_INITIAL,
                 }))

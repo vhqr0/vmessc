@@ -39,7 +39,7 @@ class VmessNode:
         port: Port of vmess service.
         uuid: Identity to connect to vmess service.
         delay: Time to connect to node, while -1 means timeout.
-        weight: Internal use only, to dynamicly discard unworked nodes.
+        weight: Dynamicly updated weight to discard unworked nodes.
     """
     name: str
     addr: str
@@ -50,8 +50,13 @@ class VmessNode:
 
     REQ_KEY_SUFFIX = b'c48619fe-8f02-49e0-b9e9-edf763e17e21'
 
-    def __init__(self, name: str, addr: str, port: int, uuid: UUID,
-                 delay: float):
+    def __init__(self,
+                 name: str,
+                 addr: str,
+                 port: int,
+                 uuid: UUID,
+                 delay: float,
+                 weight: float = WEIGHT_INITIAL):
         """
         Args:
             name: Readable name.
@@ -59,14 +64,14 @@ class VmessNode:
             port: Port of vmess service.
             uuid: Identity to connect to vmess service.
             delay: Time to connect to node, while -1 means timeout.
-            weight: Internal use only, to dynamicly discard unworked nodes.
+            weight: Dynamicly updated weight to discard unworked nodes.
         """
         self.name = name
         self.addr = addr
         self.port = port
         self.uuid = uuid
         self.delay = delay
-        self.weight = WEIGHT_INITIAL
+        self.weight = weight
 
     def __str__(self) -> str:
         return f'{self.name} W{int(self.weight)}'
@@ -83,7 +88,7 @@ class VmessNode:
         """Convert dict to VmessNode.
 
         Args:
-            obj: Dict contains name, addr, port, uuid and delay.
+            obj: Dict contains name, addr, port, uuid, delay and weight.
 
         Return:
             VmessNode initialized from dict.
@@ -92,7 +97,8 @@ class VmessNode:
                    addr=str(obj['addr']),
                    port=int(obj['port']),
                    uuid=UUID(str(obj['uuid'])),
-                   delay=float(obj['delay']))
+                   delay=float(obj['delay']),
+                   weight=float(obj['weight']))
 
     def to_dict(self) -> dict:
         """Convert VmessNode to dict.
@@ -106,6 +112,7 @@ class VmessNode:
             'port': self.port,
             'uuid': str(self.uuid),
             'delay': self.delay,
+            'weight': self.weight,
         }
 
     def weight_increase(self):
@@ -115,17 +122,19 @@ class VmessNode:
         self.weight = max(self.weight - WEIGHT_DECREASE_STEP, WEIGHT_MINIMAL)
 
     def print(self, index):
-        print(f'{index}:\t{self.name}\t{self.addr}:{self.port}\t{self.delay}')
+        print(f'{index}:\t{self}\t{self.addr}:{self.port}\t{self.delay}')
 
     def ping(self):
         """Measure delay time."""
         self.delay = -1.0
+        self.weight = -1.0
         try:
             start_time = time.time()
             sock = socket.create_connection((self.addr, self.port), 3)
             sock.close()
             end_time = time.time()
             self.delay = end_time - start_time
+            self.weight = WEIGHT_INITIAL
         except Exception:
             pass
-        print(f'ping {self.name}\t{self.delay}')
+        print(f'ping {self}\t{self.delay}')

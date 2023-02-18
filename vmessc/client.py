@@ -36,6 +36,7 @@ from .defaults import (
     LOG_LEVEL,
     LOG_FORMAT,
     LOG_DATEFMT,
+    WEIGHT_INITIAL,
 )
 from .node import VmessNode
 from .rule import Rule, RuleMatcher
@@ -178,6 +179,7 @@ def main():
         'port': peer_url.port or PEER_PORT,
         'uuid': peer_uuid,
         'delay': -1.0,
+        'weight': WEIGHT_INITIAL,
     })
 
     client = VmessClient(local_addr=local_url.hostname or LOCAL_ADDR,
