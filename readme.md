@@ -25,12 +25,12 @@ direct	baidu.com
 forward	github.com
 ```
 
-匹配域名 `1.www.baidu.com` 时依次匹配`1.www.baidu.com`、
+匹配域名 `1.www.baidu.com` 时依次匹配 `1.www.baidu.com`、
 `www.baidu.com`、`baidu.com`，最终匹配到 `direct`，即在本地处理请求；
-匹配 `1.ads.baidu.com` 时依次匹配`1.ads.baidu.com`、`ads.baidu.com`，
+匹配 `1.ads.baidu.com` 时依次匹配 `1.ads.baidu.com`、`ads.baidu.com`，
 最终匹配到 `block`，即丢弃请求；同理，`gist.github.com` 会匹配到
 `forward`，即选择一个 vmess 节点转发请求；如果未匹配到任何规则，将使用
-默认规则（称为 direction）。
+默认规则（称为 `direction`）。
 
 相同的域名越靠前的优先级越高，可以在规则文件的前几行添加规则来覆盖后面
 的规则。如果不需要规则匹配，那么可以将规则文件设置为空文件或不存在的文
@@ -38,7 +38,7 @@ forward	github.com
 
 `scripts/dlc_merge.py` 将
 [domain-list](https://github.com/v2fly/domain-list-community) 收录的域
-名转化为 vmessc 的规则文件可能满足你的需求。
+名转化为 vmessc 规则文件可能满足你的需求。
 
 2. 配置
 
