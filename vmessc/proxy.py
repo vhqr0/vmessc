@@ -257,6 +257,7 @@ class RawConnector:
             self.peer_writer.write(self.rest)
             await self.peer_writer.drain()
 
+        # Notice: Must save refs of tasks util cancel performed.
         task1 = asyncio.create_task(io_copy(self.reader, self.peer_writer))
         task2 = asyncio.create_task(io_copy(self.peer_reader, self.writer))
         self.tasks.add(task1)

@@ -136,6 +136,7 @@ class VmessConnector:
         self.peer_reader, self.peer_writer = await asyncio.open_connection(
             self.peer.addr, self.peer.port)
 
+        # Notice: Must save refs of tasks util cancel performed.
         task1 = asyncio.create_task(self.io_copy_from_client())
         task2 = asyncio.create_task(self.io_copy_from_peer())
         self.tasks.add(task1)
@@ -179,6 +180,30 @@ class VmessConnector:
         alen = len(addr_bytes)
 
         plen = random.getrandbits(4)
+
+        # Notice:
+        #
+        # I found conflict definations of secmeth.
+        #
+        # In dev doc:
+        #   https://www.v2ray.com/developer/protocols/vmess.html
+        # 0x00：AES-128-CFB；
+        # 0x01：Plain；
+        # 0x02：AES-128-GCM；
+        # 0x03：ChaCha20-Poly1305；
+        #
+        # In src:
+        #   https://github.com/v2ray/v2ray-core/blob/master/common/protocol/headers.pb.go
+        #   https://github.com/v2fly/v2ray-core/blob/master/common/protocol/headers.pb.go
+        # SecurityType_UNKNOWN           SecurityType = 0
+        # SecurityType_LEGACY            SecurityType = 1
+        # SecurityType_AUTO              SecurityType = 2
+        # SecurityType_AES128_GCM        SecurityType = 3
+        # SecurityType_CHACHA20_POLY1305 SecurityType = 4
+        # SecurityType_NONE              SecurityType = 5
+        # SecurityType_ZERO              SecurityType = 6
+        #
+        # While I set secmeth=3 to use AESGCM.
 
         # ver(B)          : 1
         # iv(16s)         : iv
