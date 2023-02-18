@@ -32,6 +32,11 @@ from typing import Optional, Dict
 from typing_extensions import Self
 from enum import Enum
 
+from .defaults import (
+    RULE_FILE,
+    DIRECTION,
+)
+
 
 class Rule(Enum):
     """Represent a proxy rule: one of Block, Direct or Forward.
@@ -95,7 +100,7 @@ class RuleMatcher:
     rules: Optional[Dict[str, Rule]]
 
     def __init__(self,
-                 direction: str = 'direct',
+                 direction: str = DIRECTION,
                  rule_file: Optional[str] = None):
         """
         Args:
@@ -157,8 +162,8 @@ class RuleMatcher:
 def main():
     """Main entry to match rules of domains."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--direction', default='direct')
-    parser.add_argument('-r', '--rule-file', default='rule.txt')
+    parser.add_argument('-d', '--direction', default=DIRECTION)
+    parser.add_argument('-r', '--rule-file', default=RULE_FILE)
     parser.add_argument('domains', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 

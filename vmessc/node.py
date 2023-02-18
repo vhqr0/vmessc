@@ -11,6 +11,14 @@ import socket
 from typing_extensions import Self
 from uuid import UUID
 
+from .defaults import (
+    WEIGHT_INITIAL,
+    WEIGHT_MINIMAL,
+    WEIGHT_MAXIMAL,
+    WEIGHT_INCREASE_STEP,
+    WEIGHT_DECREASE_STEP,
+)
+
 
 class VmessNode:
     """Represent a vmess node.
@@ -41,12 +49,6 @@ class VmessNode:
     delay: float
     weight: float
 
-    WEIGHT_INITIAL = 10.0
-    WEIGHT_MINIMAL = 1.0
-    WEIGHT_MAXIMAL = 100.0
-    WEIGHT_INCREASE_STEP = 0.5
-    WEIGHT_DECREASE_STEP = 1.0
-
     req_key_const = b'c48619fe-8f02-49e0-b9e9-edf763e17e21'
 
     def __init__(self, ps: str, addr: str, port: int, uuid: UUID,
@@ -65,7 +67,7 @@ class VmessNode:
         self.port = port
         self.uuid = uuid
         self.delay = delay
-        self.weight = self.WEIGHT_INITIAL
+        self.weight = WEIGHT_INITIAL
 
     def __str__(self) -> str:
         return f'{self.ps} W{int(self.weight)}'
@@ -108,12 +110,10 @@ class VmessNode:
         }
 
     def weight_increase(self):
-        self.weight = min(self.weight + self.WEIGHT_INCREASE_STEP,
-                          self.WEIGHT_MAXIMAL)
+        self.weight = min(self.weight + WEIGHT_INCREASE_STEP, WEIGHT_MAXIMAL)
 
     def weight_decrease(self):
-        self.weight = max(self.weight - self.WEIGHT_DECREASE_STEP,
-                          self.WEIGHT_MINIMAL)
+        self.weight = max(self.weight - WEIGHT_DECREASE_STEP, WEIGHT_MINIMAL)
 
     def print(self, index):
         print(f'{index}:\t{self.ps}\t{self.addr}:{self.port}\t{self.delay}')

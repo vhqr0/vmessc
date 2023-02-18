@@ -14,6 +14,9 @@ import argparse
 from typing import List
 from cmd import Cmd
 
+from .defaults import (
+    CONFIG_FILE,
+)
 from .config import VmessConfig
 
 
@@ -32,7 +35,7 @@ class VmessCli(Cmd):
     intro = 'Welcome to vmess cli. Type help or ? to list commands.\n'
     prompt = 'vmess cli $ '
 
-    def __init__(self, config_file: str = 'config.json'):
+    def __init__(self, config_file: str = CONFIG_FILE):
         """
         Args:
             config_file: Config file path passed to config.
@@ -120,7 +123,7 @@ def main():
         prog='vmessc',
         description='vmess proxy protocol client',
     )
-    parser.add_argument('-c', '--config-file', default='config.json')
+    parser.add_argument('-c', '--config-file', default=CONFIG_FILE)
     parser.add_argument('command', nargs=argparse.REMAINDER)
     args = parser.parse_args()
 

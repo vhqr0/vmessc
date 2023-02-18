@@ -23,7 +23,18 @@ from typing import Optional, List
 from uuid import UUID
 from asyncio import StreamReader, StreamWriter
 
-from .defaults import LOG_LEVEL, LOG_FORMAT, LOG_DATEFMT
+from .defaults import (
+    DIRECTION,
+    LOCAL_URL,
+    LOCAL_ADDR,
+    LOCAL_PORT,
+    PEER_URL,
+    PEER_ADDR,
+    PEER_PORT,
+    LOG_LEVEL,
+    LOG_FORMAT,
+    LOG_DATEFMT,
+)
 from .node import VmessNode
 from .rule import Rule, RuleMatcher
 from .proxy import ProxyAcceptor, RawConnector
@@ -53,7 +64,7 @@ class VmessClient:
         local_addr: str,
         local_port: int,
         peers: List[VmessNode],
-        direction: str = 'direct',
+        direction: str = DIRECTION,
         rule_file: Optional[str] = None,
     ):
         """
@@ -142,10 +153,10 @@ def main():
     """Main entry to run client with one peer."""
     parser = argparse.ArgumentParser()
     parser.add_argument()
-    parser.add_argument('-l', '--local-url', default='http://localhost:1080')
-    parser.add_argument('-p', '--peer-url', default='vmess://localhost:443')
+    parser.add_argument('-l', '--local-url', default=LOCAL_URL)
+    parser.add_argument('-p', '--peer-url', default=PEER_URL)
     parser.add_argument('-u', '--uuid')
-    parser.add_argument('-d', '--direction', default='direct')
+    parser.add_argument('-d', '--direction', default=DIRECTION)
     parser.add_argument('-r', '--rule-file')
     args = parser.parse_args()
 
@@ -161,14 +172,14 @@ def main():
 
     peer = VmessNode.from_dict({
         'ps': 'vmessc',
-        'addr': peer_url.hostname or 'localhost',
-        'port': peer_url.port or 443,
+        'addr': peer_url.hostname or PEER_ADDR,
+        'port': peer_url.port or PEER_PORT,
         'uuid': uuid,
         'delay': -1.0,
     })
 
-    client = VmessClient(local_addr=local_url.hostname or 'localhost',
-                         local_port=local_url.port or 1080,
+    client = VmessClient(local_addr=local_url.hostname or LOCAL_ADDR,
+                         local_port=local_url.port or LOCAL_PORT,
                          peers=[peer],
                          direction=direction,
                          rule_file=rule_file)

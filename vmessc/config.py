@@ -54,7 +54,17 @@ import requests
 from typing import Optional, List
 from urllib.parse import ParseResult as URL
 
-from .defaults import LOG_LEVEL, LOG_FORMAT, LOG_DATEFMT
+from .defaults import (
+    CONFIG_FILE,
+    DIRECTION,
+    LOCAL_URL,
+    LOCAL_ADDR,
+    LOCAL_PORT,
+    FETCH_URL,
+    LOG_LEVEL,
+    LOG_FORMAT,
+    LOG_DATEFMT,
+)
 from .node import VmessNode
 from .client import VmessClient
 
@@ -85,7 +95,7 @@ class VmessConfig:
 
     fetch_url_re = re.compile('^([0-9a-zA-Z]+)://(.*)$')
 
-    def __init__(self, config_file: str = 'config.json'):
+    def __init__(self, config_file: str = CONFIG_FILE):
         """
         Args:
             config_file: Persistent configure file path.
@@ -122,17 +132,18 @@ class VmessConfig:
     def load(self):
         """Load config."""
         if not os.path.exists(self.config_file):
-            self.local_url = urlparse('http://localhost:1080')
-            self.direction = 'direct'
+            self.fetch_url = urlparse(FETCH_URL)
+            self.local_url = urlparse(LOCAL_URL)
+            self.direction = DIRECTION
             self.log_level = LOG_LEVEL
             self.log_format = LOG_FORMAT
             self.log_datefmt = LOG_DATEFMT
             return
         with open(self.config_file) as cf:
             data = json.load(cf)
-            self.fetch_url = urlparse(data.get('fetch_url') or 'http:')
-            self.local_url = urlparse(data.get('local_url') or 'http:')
-            self.direction = data.get('direction') or 'direct'
+            self.fetch_url = urlparse(data.get('fetch_url') or FETCH_URL)
+            self.local_url = urlparse(data.get('local_url') or LOCAL_URL)
+            self.direction = data.get('direction') or DIRECTION
             self.rule_file = data.get('rule_file')
             self.log_level = data.get('log_level') or LOG_LEVEL
             self.log_format = data.get('log_format') or LOG_FORMAT
@@ -193,10 +204,10 @@ class VmessConfig:
         """
         nodes = self.get_nodes(node_indexes)
         client = VmessClient(
-            local_addr=self.local_url.hostname or 'localhost',
-            local_port=self.local_url.port or 1080,
+            local_addr=self.local_url.hostname or LOCAL_ADDR,
+            local_port=self.local_url.port or LOCAL_PORT,
             peers=[node for node in nodes if node.delay > 0.0],
-            direction=self.direction or 'direct',
+            direction=self.direction or DIRECTION,
             rule_file=self.rule_file,
         )
         client.run()

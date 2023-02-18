@@ -31,7 +31,15 @@ from typing import Optional, Set
 from typing_extensions import Self
 from asyncio import Task, StreamReader, StreamWriter
 
-from .defaults import LOG_LEVEL, LOG_FORMAT, LOG_DATEFMT
+from .defaults import (
+    DIRECTION,
+    LOCAL_URL,
+    LOCAL_ADDR,
+    LOCAL_PORT,
+    LOG_LEVEL,
+    LOG_FORMAT,
+    LOG_DATEFMT,
+)
 from .rule import Rule, RuleMatcher
 
 
@@ -293,8 +301,8 @@ class RawConnector:
 def main():
     """Main entry to run a rule based proxy, auto detect http/socks5."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', '--local-url', default='http://localhost:1080')
-    parser.add_argument('-d', '--direction', default='direct')
+    parser.add_argument('-l', '--local-url', default=LOCAL_URL)
+    parser.add_argument('-d', '--direction', default=DIRECTION)
     parser.add_argument('-r', '--rule-file')
     args = parser.parse_args()
 
@@ -324,8 +332,8 @@ def main():
 
     async def start_server():
         server = await asyncio.start_server(proxy_handler,
-                                            local_url.hostname or 'localhost',
-                                            local_url.port or 1080,
+                                            local_url.hostname or LOCAL_ADDR,
+                                            local_url.port or LOCAL_PORT,
                                             reuse_address=True)
         addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
         logging.info('server start at %s', addrs)
