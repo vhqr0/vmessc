@@ -97,9 +97,10 @@ class VmessConfig:
         print(f'direction:\t{self.direction}')
         print(f'rule_file:\t{self.rule_file}')
         print(f'log_level:\t{self.log_level}')
-        print('--- nodes ---')
+        print('--- beg nodes ---')
         for index, node in enumerate(self.nodes):
-            print(f'{index}: {node}')
+            node.print(index)
+        print('--- end nodes ---')
 
     def save(self):
         """Save config."""

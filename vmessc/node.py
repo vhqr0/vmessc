@@ -41,9 +41,9 @@ class VmessNode:
     delay: float
     weight: float
 
-    WEIGHT_INITIAL = 20.0
-    WEIGHT_MIN = 1.0
-    WEIGHT_INCREASE_STEP = 0.1
+    WEIGHT_INITIAL = 10.0
+    WEIGHT_MINIMAL = 1.0
+    WEIGHT_INCREASE_STEP = 0.5
     WEIGHT_DECREASE_STEP = 1.0
 
     req_key_const = b'c48619fe-8f02-49e0-b9e9-edf763e17e21'
@@ -67,7 +67,7 @@ class VmessNode:
         self.weight = self.WEIGHT_INITIAL
 
     def __str__(self) -> str:
-        return f'{self.ps}\t{self.addr}:{self.port}\t{self.delay}'
+        return f'{self.ps} W{int(self.weight)}'
 
     @functools.cached_property
     def req_key(self) -> bytes:
@@ -111,7 +111,10 @@ class VmessNode:
 
     def weight_decrease(self):
         self.weight -= self.WEIGHT_DECREASE_STEP
-        self.weight = max(self.weight, self.WEIGHT_MIN)
+        self.weight = max(self.weight, self.WEIGHT_MINIMAL)
+
+    def print(self, index):
+        print(f'{index}:\t{self.ps}\t{self.addr}:{self.port}\t{self.delay}')
 
     def ping(self):
         """Measure delay time."""

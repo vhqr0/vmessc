@@ -77,7 +77,7 @@ class VmessClient:
         try:
             asyncio.run(self.start_server())
         except Exception as e:
-            self.logger.error('server except %s', e)
+            self.logger.error('server except %.40s', e)
 
     async def start_server(self):
         """Start server."""
@@ -102,7 +102,7 @@ class VmessClient:
             acceptor = ProxyAcceptor(reader, writer)
             await acceptor.accept()
         except Exception as e:
-            self.logger.debug('[except]\twhile accepting: %s', e)
+            self.logger.debug('[except]\twhile accepting: %.40s', e)
             return
 
         peer: Optional[VmessNode] = None
@@ -122,7 +122,7 @@ class VmessClient:
                 peer, = random.choices(
                     self.peers, weights=[peer.weight for peer in self.peers])
                 self.logger.info('[forward]\tconnect to %s:%d via %s',
-                                 acceptor.addr, acceptor.port, peer.ps)
+                                 acceptor.addr, acceptor.port, peer)
                 vmess_connector = VmessConnector.from_acceptor(acceptor, peer)
                 await vmess_connector.connect()
                 peer.weight_increase()
@@ -130,10 +130,10 @@ class VmessClient:
             if peer is not None:
                 peer.weight_decrease()
                 self.logger.debug(
-                    '[except]\twhile connecting to %s:%d via %s: %s',
-                    acceptor.addr, acceptor.port, peer.ps, e)
+                    '[except]\twhile connecting to %s:%d via %s: %.40s',
+                    acceptor.addr, acceptor.port, peer, e)
             else:
-                self.logger.debug('[except]\twhile connecting to %s:%d: %s',
+                self.logger.debug('[except]\twhile connecting to %s:%d: %.40s',
                                   acceptor.addr, acceptor.port, e)
 
 
