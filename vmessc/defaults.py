@@ -7,6 +7,7 @@ LOCAL_URL = 'http://localhost:1080'
 LOCAL_ADDR = 'localhost'
 LOCAL_PORT = 1080
 
+PEER_UUID = 'c48619fe-8f02-49e0-b9e9-edf763e17e21'
 PEER_URL = 'vmess://localhost:443'
 PEER_ADDR = 'localhost'
 PEER_PORT = 443

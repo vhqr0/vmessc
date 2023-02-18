@@ -29,6 +29,7 @@ from .defaults import (
     LOCAL_URL,
     LOCAL_ADDR,
     LOCAL_PORT,
+    PEER_UUID,
     PEER_URL,
     PEER_ADDR,
     PEER_PORT,
@@ -156,14 +157,14 @@ def main():
     parser.add_argument()
     parser.add_argument('-l', '--local-url', default=LOCAL_URL)
     parser.add_argument('-p', '--peer-url', default=PEER_URL)
-    parser.add_argument('-u', '--uuid')
+    parser.add_argument('-u', '--peer-uuid', type=UUID, default=PEER_UUID)
     parser.add_argument('-d', '--direction', default=DIRECTION)
     parser.add_argument('-r', '--rule-file', default=RULE_FILE)
     args = parser.parse_args()
 
     local_url = urlparse(args.local_url)
     peer_url = urlparse(args.peer_url)
-    uuid = UUID(args.uuid)
+    peer_uuid = args.peer_uuid
     direction = args.direction
     rule_file = args.rule_file
 
@@ -175,7 +176,7 @@ def main():
         'ps': 'vmessc',
         'addr': peer_url.hostname or PEER_ADDR,
         'port': peer_url.port or PEER_PORT,
-        'uuid': uuid,
+        'uuid': peer_uuid,
         'delay': -1.0,
     })
 

@@ -49,7 +49,7 @@ class VmessNode:
     delay: float
     weight: float
 
-    req_key_const = b'c48619fe-8f02-49e0-b9e9-edf763e17e21'
+    REQ_KEY_SUFFIX = b'c48619fe-8f02-49e0-b9e9-edf763e17e21'
 
     def __init__(self, ps: str, addr: str, port: int, uuid: UUID,
                  delay: float):
@@ -76,7 +76,7 @@ class VmessNode:
     def req_key(self) -> bytes:
         h = hashlib.md5()
         h.update(self.uuid.bytes)
-        h.update(self.req_key_const)
+        h.update(self.REQ_KEY_SUFFIX)
         return h.digest()
 
     @classmethod
