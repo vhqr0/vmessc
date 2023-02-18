@@ -31,6 +31,7 @@ from typing import Optional, Set
 from typing_extensions import Self
 from asyncio import Task, StreamReader, StreamWriter
 
+from .defaults import LOG_LEVEL, LOG_FORMAT, LOG_DATEFMT
 from .rule import Rule, RuleMatcher
 
 
@@ -301,7 +302,9 @@ def main():
     direction = args.direction
     rule_file = args.rule_file
 
-    logging.basicConfig(level='DEBUG')
+    logging.basicConfig(level=LOG_LEVEL,
+                        format=LOG_FORMAT,
+                        datefmt=LOG_DATEFMT)
 
     rule_matcher = RuleMatcher(direction=direction, rule_file=rule_file)
 

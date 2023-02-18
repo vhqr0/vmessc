@@ -23,6 +23,7 @@ from typing import Optional, List
 from uuid import UUID
 from asyncio import StreamReader, StreamWriter
 
+from .defaults import LOG_LEVEL, LOG_FORMAT, LOG_DATEFMT
 from .node import VmessNode
 from .rule import Rule, RuleMatcher
 from .proxy import ProxyAcceptor, RawConnector
@@ -45,7 +46,7 @@ class VmessClient:
     peers: List[VmessNode]
     rule_matcher: RuleMatcher
 
-    logger = logging.getLogger('vmess_client')
+    logger = logging.getLogger('vmessc')
 
     def __init__(
         self,
@@ -77,7 +78,7 @@ class VmessClient:
         try:
             asyncio.run(self.start_server())
         except Exception as e:
-            self.logger.error('server except %.40s', e)
+            self.logger.error('SRV except %.40s', e)
 
     async def start_server(self):
         """Start server."""
@@ -86,7 +87,7 @@ class VmessClient:
                                             self.local_port,
                                             reuse_address=True)
         addrs = ', '.join(str(sock.getsockname()) for sock in server.sockets)
-        self.logger.info('server start at %s', addrs)
+        self.logger.info('SRV start at %s', addrs)
         async with server:
             await server.serve_forever()
 
@@ -102,7 +103,7 @@ class VmessClient:
             acceptor = ProxyAcceptor(reader, writer)
             await acceptor.accept()
         except Exception as e:
-            self.logger.debug('[except]\twhile accepting: %.40s', e)
+            self.logger.debug('EXC while accepting: %.40s', e)
             return
 
         peer: Optional[VmessNode] = None
@@ -110,19 +111,19 @@ class VmessClient:
         try:
             rule = self.rule_matcher.match(acceptor.addr)
             if rule == Rule.Block:
-                self.logger.info('[block]\tconnect to %s:%d', acceptor.addr,
+                self.logger.info('BLK connect to %s:%d', acceptor.addr,
                                  acceptor.port)
                 return
             if rule == Rule.Direct:
-                self.logger.info('[direct]\tconnect to %s:%d', acceptor.addr,
+                self.logger.info('DRT connect to %s:%d', acceptor.addr,
                                  acceptor.port)
                 raw_connector = RawConnector.from_acceptor(acceptor)
                 await raw_connector.connect()
             elif rule == Rule.Forward:
                 peer, = random.choices(
                     self.peers, weights=[peer.weight for peer in self.peers])
-                self.logger.info('[forward]\tconnect to %s:%d via %s',
-                                 acceptor.addr, acceptor.port, peer)
+                self.logger.info('FWD connect to %s:%d via %s', acceptor.addr,
+                                 acceptor.port, peer)
                 vmess_connector = VmessConnector.from_acceptor(acceptor, peer)
                 await vmess_connector.connect()
                 peer.weight_increase()
@@ -130,10 +131,10 @@ class VmessClient:
             if peer is not None:
                 peer.weight_decrease()
                 self.logger.debug(
-                    '[except]\twhile connecting to %s:%d via %s: %.40s',
+                    'EXC while connecting to %s:%d via %s: %.40s',
                     acceptor.addr, acceptor.port, peer, e)
             else:
-                self.logger.debug('[except]\twhile connecting to %s:%d: %.40s',
+                self.logger.debug('EXC while connecting to %s:%d: %.40s',
                                   acceptor.addr, acceptor.port, e)
 
 
@@ -154,7 +155,9 @@ def main():
     direction = args.direction
     rule_file = args.rule_file
 
-    logging.basicConfig(level='DEBUG')
+    logging.basicConfig(level=LOG_LEVEL,
+                        format=LOG_FORMAT,
+                        datefmt=LOG_DATEFMT)
 
     peer = VmessNode.from_dict({
         'ps': 'vmessc',

@@ -3,6 +3,19 @@
 Provide a connector similar to proxy.RawConnector, but make raw to
 vmess connection.
 
+Links:
+
+  new:
+    https://www.v2fly.org/developer/protocols/vmess.html
+    https://github.com/v2fly/v2ray-core/blob/master/common/protocol/headers.pb.go
+
+  old:
+    https://www.v2ray.com/developer/protocols/vmess.html
+    https://github.com/v2ray/v2ray-core/blob/master/common/protocol/headers.pb.go
+
+  I found conflict definations of secmeth in old doc (AESGCM=2) and
+  src (AESGCM=3), while I use AESGCM=3, same with new doc and src.
+
 Usage example:
 
   async def proxy_handler(reader, writer):
@@ -180,30 +193,6 @@ class VmessConnector:
         alen = len(addr_bytes)
 
         plen = random.getrandbits(4)
-
-        # Notice:
-        #
-        # I found conflict definations of secmeth.
-        #
-        # In dev doc:
-        #   https://www.v2ray.com/developer/protocols/vmess.html
-        # 0x00：AES-128-CFB；
-        # 0x01：Plain；
-        # 0x02：AES-128-GCM；
-        # 0x03：ChaCha20-Poly1305；
-        #
-        # In src:
-        #   https://github.com/v2ray/v2ray-core/blob/master/common/protocol/headers.pb.go
-        #   https://github.com/v2fly/v2ray-core/blob/master/common/protocol/headers.pb.go
-        # SecurityType_UNKNOWN           SecurityType = 0
-        # SecurityType_LEGACY            SecurityType = 1
-        # SecurityType_AUTO              SecurityType = 2
-        # SecurityType_AES128_GCM        SecurityType = 3
-        # SecurityType_CHACHA20_POLY1305 SecurityType = 4
-        # SecurityType_NONE              SecurityType = 5
-        # SecurityType_ZERO              SecurityType = 6
-        #
-        # While I set secmeth=3 to use AESGCM.
 
         # ver(B)          : 1
         # iv(16s)         : iv

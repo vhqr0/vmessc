@@ -9,7 +9,6 @@ Usage example:
 """
 
 from urllib.parse import urlparse
-import logging
 import argparse
 
 from typing import List
@@ -78,7 +77,7 @@ class VmessCli(Cmd):
     def do_run(self, args: str):
         """Do run."""
         try:
-            logging.basicConfig(level=self.config.log_level)
+            self.config.log_config()
             self.config.run([int(arg) for arg in args.split()])
         except Exception as e:
             print(f'run failed: {e}')
