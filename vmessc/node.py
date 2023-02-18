@@ -43,6 +43,7 @@ class VmessNode:
 
     WEIGHT_INITIAL = 10.0
     WEIGHT_MINIMAL = 1.0
+    WEIGHT_MAXIMAL = 100.0
     WEIGHT_INCREASE_STEP = 0.5
     WEIGHT_DECREASE_STEP = 1.0
 
@@ -107,11 +108,12 @@ class VmessNode:
         }
 
     def weight_increase(self):
-        self.weight += self.WEIGHT_INCREASE_STEP
+        self.weight = min(self.weight + self.WEIGHT_INCREASE_STEP,
+                          self.WEIGHT_MAXIMAL)
 
     def weight_decrease(self):
-        self.weight -= self.WEIGHT_DECREASE_STEP
-        self.weight = max(self.weight, self.WEIGHT_MINIMAL)
+        self.weight = max(self.weight - self.WEIGHT_DECREASE_STEP,
+                          self.WEIGHT_MINIMAL)
 
     def print(self, index):
         print(f'{index}:\t{self.ps}\t{self.addr}:{self.port}\t{self.delay}')
