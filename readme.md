@@ -129,7 +129,7 @@ Internal
 --------
 
 1. defaults.py：定义一些常量，例如默认的配置文件和规则文件路径、默认的监听端口等。
-2. nodes.py：实现可序列化、反序列化的 vmess 节点类，和 V2rayN 格式的订阅节点的获取。
+2. node.py：实现可序列化、反序列化的 vmess 节点类，和 V2rayN 格式的订阅节点的获取。
 3. rule.py：实现规则文件的加载和规则匹配。
 4. proxy.py：实现 SOCKS5/HTTP 代理协议接收器和原始连接器。
 5. vmess.py：实现 vmess 代理协议连接器。
