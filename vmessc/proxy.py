@@ -325,6 +325,8 @@ def main():
             logging.info('[%s]\tconnect to %s:%d', rule, acceptor.addr,
                          acceptor.port)
             if rule == Rule.Block:
+                writer.close()
+                await writer.wait_closed()
                 return
             connector = RawConnector.from_acceptor(acceptor)
             await connector.connect()

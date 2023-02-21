@@ -129,6 +129,8 @@ class VmessClient:
             if rule == Rule.Block:
                 self.logger.info('BLK connect to %s:%d', acceptor.addr,
                                  acceptor.port)
+                writer.close()
+                await writer.wait_closed()
                 return
             if rule == Rule.Direct:
                 self.logger.info('DRT connect to %s:%d', acceptor.addr,

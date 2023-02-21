@@ -160,7 +160,7 @@ class VmessNode:
                     'name': data['ps'],
                     'addr': data['add'],
                     'port': data['port'],
-                    'uuid': data['uuid'],
+                    'uuid': data['id'],
                     'delay': -1.0,
                     'weight': WEIGHT_INITIAL,
                 }))
